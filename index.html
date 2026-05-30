@@ -570,12 +570,11 @@ function clearMap(){
   markers = [];
 }
 
-// The Luxe square mark: angled left bar + peak forming the "A", as on the logo.
+// The Luxe square mark: a bold left slash "/" plus a taller peak "Λ", as on the logo.
 const LUXE_MARK_SVG =
   '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-    '<path d="M10 38 L21 12" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>' +
-    '<path d="M25 12 L38 38" stroke="#fff" stroke-width="4.5" stroke-linecap="round"/>' +
-    '<path d="M22 20 L26 11 L30 20" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M9 39 L21 10" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M24 39 L32 10 L41 39" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
   '</svg>';
 // Mirror the Luxe mark into the map legend
 (function(){ const li = document.getElementById('legendHomeIco'); if(li) li.innerHTML = LUXE_MARK_SVG; })();
