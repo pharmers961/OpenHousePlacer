@@ -280,6 +280,17 @@
     z-index:3;
     box-shadow:0 6px 18px rgba(0,0,0,0.1);
   }
+  .legend-toggle{
+    display:none; /* desktop: header hidden, key always shown */
+    width:100%; align-items:center; justify-content:space-between; gap:10px;
+    background:none; border:none; padding:0; cursor:pointer;
+    font:inherit; color:var(--ink); font-weight:600;
+    text-transform:uppercase; letter-spacing:1px;
+  }
+  .legend-caret{ transition:transform .15s; }
+  .legend.collapsed .legend-caret{ transform:rotate(-90deg); }
+  .legend.collapsed .legend-body{ display:none; }
+  .legend.collapsed{ padding:8px 12px; }
   .legend .row{ display:flex; align-items:center; gap:7px; margin:3px 0; }
   .legend .dot{ width:11px;height:11px;border-radius:50%; }
   /* Luxe square mark used both as the listing marker and in the legend */
@@ -311,12 +322,15 @@
     body{ flex-direction:column; }
     .panel{ width:100%; min-width:0; height:auto; max-height:55%; }
     #map{ flex:1; min-height:45vh; }
-    /* On phones, pin the legend to the TOP of the map so the browser toolbar
-       at the bottom can never clip it, and shrink it to save space. */
+    /* On phones, pin the legend to the TOP-LEFT and make it a collapsible
+       "Key" pill so it never covers the pins. Toggle shown; starts collapsed. */
     .legend{
-      top:12px; left:12px; right:12px; bottom:auto;
-      font-size:10.5px; padding:9px 12px;
+      top:12px; left:12px; right:auto; bottom:auto;
+      max-width:75%;
+      font-size:10.5px; padding:8px 12px;
     }
+    .legend-toggle{ display:flex; }
+    .legend-body{ margin-top:8px; }
     .legend .row{ margin:2px 0; }
   }
 </style>
@@ -370,11 +384,16 @@
 </aside>
 
 <div id="map">
-  <div class="legend">
-    <div class="row"><span class="home-ico" id="legendHomeIco"></span> The listing (Luxe mark)</div>
-    <div class="row"><span class="dot" style="background:#0a0a0a"></span> Sign spot (ordered for driving)</div>
-    <div class="row"><span class="dot" style="background:#b00020"></span> Manually placed sign</div>
-    <div class="row" style="font-size:10px;color:var(--muted);margin-top:2px" id="legendAddHint">Right-click the map to add a sign manually</div>
+  <div class="legend" id="legend">
+    <button type="button" class="legend-toggle" id="legendToggle" aria-expanded="true" aria-controls="legendBody">
+      <span class="legend-title">Key</span><span class="legend-caret" aria-hidden="true">▾</span>
+    </button>
+    <div class="legend-body" id="legendBody">
+      <div class="row"><span class="home-ico" id="legendHomeIco"></span> The listing (Luxe mark)</div>
+      <div class="row"><span class="dot" style="background:#0a0a0a"></span> Sign spot (ordered for driving)</div>
+      <div class="row"><span class="dot" style="background:#b00020"></span> Manually placed sign</div>
+      <div class="row" style="font-size:10px;color:var(--muted);margin-top:2px" id="legendAddHint">Right-click the map to add a sign manually</div>
+    </div>
   </div>
 </div>
 
@@ -592,6 +611,18 @@ const LUXE_MARK_SVG =
   if(hint) hint.textContent = isTouch
     ? 'Hold down on the map to add a sign manually'
     : 'Right-click the map to add a sign manually';
+
+  // Collapsible "Key" on small/touch screens so it never covers the pins.
+  const legend = document.getElementById('legend');
+  const toggle = document.getElementById('legendToggle');
+  const small = window.matchMedia('(max-width:760px)').matches;
+  if(legend && toggle){
+    if(small){ legend.classList.add('collapsed'); toggle.setAttribute('aria-expanded','false'); }
+    toggle.addEventListener('click', () => {
+      const collapsed = legend.classList.toggle('collapsed');
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+    });
+  }
 })();
 
 function addMarker(lng, lat, label, isHome, isFallback, isManual){
