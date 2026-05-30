@@ -55,17 +55,16 @@
   .brand{
     padding:28px 26px 24px;
     background:#0a0a0a;
-    text-align:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
     transition:padding .25s ease;
   }
   .brand img.logo{
-    width:96px; height:auto; display:block; margin:0 auto 14px;
-    max-height:120px; opacity:1;
-    transition:max-height .25s ease, opacity .2s ease, margin .25s ease;
+    width:96px; height:auto; display:block; margin:0 0 14px;
+    transition:width .25s ease, margin .25s ease;
   }
-  /* When the panel is scrolled, fold the logo away but keep the name */
-  .brand.scrolled{ padding-top:16px; padding-bottom:16px; }
-  .brand.scrolled img.logo{ max-height:0; opacity:0; margin:0; }
   .brand .appname{
     margin:0;
     font-size:30px;
@@ -76,7 +75,6 @@
     text-transform:none;
     transition:font-size .25s ease;
   }
-  .brand.scrolled .appname{ font-size:22px; }
   .brand p{
     margin-top:8px;
     font-size:10.5px;
@@ -87,7 +85,16 @@
     max-height:20px; opacity:1;
     transition:max-height .25s ease, opacity .2s ease, margin .25s ease;
   }
-  .brand.scrolled p{ max-height:0; opacity:0; margin:0; }
+  /* When scrolled: logo shrinks and moves to the LEFT of the SignScout name */
+  .brand.scrolled{
+    flex-direction:row;
+    gap:12px;
+    padding-top:14px;
+    padding-bottom:14px;
+  }
+  .brand.scrolled img.logo{ width:40px; margin:0; }
+  .brand.scrolled .appname{ font-size:22px; }
+  .brand.scrolled p{ max-height:0; width:0; opacity:0; margin:0; overflow:hidden; }
 
   .scroll{ overflow-y:auto; flex:1; padding:24px 26px 30px; }
 
