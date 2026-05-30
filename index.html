@@ -180,15 +180,16 @@
   }
   .disclaimer b{ color:var(--ink); }
   #howMore .extra{ display:block; margin-top:8px; }
-  /* (i) information button */
-  .info-row{ margin-top:16px; display:flex; justify-content:flex-end; }
+  /* CTA row: Find button + compact (i) info button side by side */
+  .cta-row{ margin-top:24px; display:flex; align-items:stretch; gap:10px; }
+  .cta-row .go{ margin-top:0; flex:1; }
   .info-btn{
-    width:26px; height:26px; flex:0 0 26px;
+    width:20px; height:20px; flex:0 0 20px; align-self:center;
     border-radius:50%;
     border:1.5px solid var(--ink);
     background:#fff; color:var(--ink);
     font-family:Georgia, "Times New Roman", serif;
-    font-style:italic; font-weight:700; font-size:14px;
+    font-style:italic; font-weight:700; font-size:11px;
     line-height:1; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
     transition:background .15s, color .15s;
@@ -347,7 +348,8 @@
     .brand p{ margin-top:6px; font-size:9.5px; letter-spacing:2.5px; }
     .scroll{ padding:16px 22px 22px; }
     .gap{ height:12px; }
-    button.go{ margin-top:16px; padding:14px; }
+    .cta-row{ margin-top:16px; }
+    button.go{ padding:14px; }
     /* On phones, pin the legend to the TOP-LEFT and make it a collapsible
        "Key" pill so it never covers the pins. Toggle shown; starts collapsed. */
     .legend{
@@ -390,9 +392,8 @@
 
     <div class="gap"></div>
 
-    <button class="go" id="go">Find <span id="goCount">10</span> sign spots</button>
-
-    <div class="info-row">
+    <div class="cta-row">
+      <button class="go" id="go">Find <span id="goCount">10</span> sign spots</button>
       <button type="button" id="infoBtn" class="info-btn" aria-expanded="false" aria-controls="howMore" title="How spots are chosen">i</button>
     </div>
     <div class="disclaimer" id="howMore" hidden>
