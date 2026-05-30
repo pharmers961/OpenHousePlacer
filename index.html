@@ -33,6 +33,7 @@
     color:var(--ink);
     display:flex;
     height:100vh;
+    height:100dvh; /* dynamic viewport height: avoids the mobile toolbar cutting off the map/legend */
     overflow:hidden;
   }
 
@@ -310,7 +311,13 @@
     body{ flex-direction:column; }
     .panel{ width:100%; min-width:0; height:auto; max-height:55%; }
     #map{ flex:1; min-height:45vh; }
-    .legend{ left:14px; bottom:14px; }
+    /* On phones, pin the legend to the TOP of the map so the browser toolbar
+       at the bottom can never clip it, and shrink it to save space. */
+    .legend{
+      top:12px; left:12px; right:12px; bottom:auto;
+      font-size:10.5px; padding:9px 12px;
+    }
+    .legend .row{ margin:2px 0; }
   }
 </style>
 </head>
@@ -367,7 +374,7 @@
     <div class="row"><span class="home-ico" id="legendHomeIco"></span> The listing (Luxe mark)</div>
     <div class="row"><span class="dot" style="background:#0a0a0a"></span> Sign spot (ordered for driving)</div>
     <div class="row"><span class="dot" style="background:#b00020"></span> Manually placed sign</div>
-    <div class="row" style="font-size:10px;color:var(--muted);margin-top:2px">Right-click the map to add a sign manually</div>
+    <div class="row" style="font-size:10px;color:var(--muted);margin-top:2px" id="legendAddHint">Right-click the map to add a sign manually</div>
   </div>
 </div>
 
@@ -576,8 +583,16 @@ const LUXE_MARK_SVG =
     '<path d="M9 39 L21 10" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<path d="M24 39 L32 10 L41 39" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
   '</svg>';
-// Mirror the Luxe mark into the map legend
-(function(){ const li = document.getElementById('legendHomeIco'); if(li) li.innerHTML = LUXE_MARK_SVG; })();
+// Mirror the Luxe mark into the map legend, and tailor the "add a sign" hint
+// to the device (touch = long-press, mouse = right-click).
+(function(){
+  const li = document.getElementById('legendHomeIco'); if(li) li.innerHTML = LUXE_MARK_SVG;
+  const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  const hint = document.getElementById('legendAddHint');
+  if(hint) hint.textContent = isTouch
+    ? 'Hold down on the map to add a sign manually'
+    : 'Right-click the map to add a sign manually';
+})();
 
 function addMarker(lng, lat, label, isHome, isFallback, isManual){
   const el = document.createElement('div');
