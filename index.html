@@ -676,10 +676,13 @@ async function optimizeRoute(home, spots, token){
   }
   // radiuses=unlimited lets each point snap to the nearest road instead of
   // failing the whole request with a NoSegment error (the usual silent cause).
+  // roundtrip=true returns to the listing (source=first) — this matches the
+  // round-trip Google Maps link AND avoids the "NotImplemented" error that
+  // roundtrip=false throws unless BOTH source and destination are specified.
   const coords = pts.map(p=>p[0]+','+p[1]).join(';');
   const radiuses = pts.map(()=>'unlimited').join(';');
   const url = 'https://api.mapbox.com/optimized-trips/v1/mapbox/driving/' +
-    coords + '?source=first&roundtrip=false&radiuses=' + radiuses + '&access_token=' + token;
+    coords + '?source=first&roundtrip=true&radiuses=' + radiuses + '&access_token=' + token;
   try{
     const r = await fetch(url);
     const d = await r.json().catch(()=>null);
