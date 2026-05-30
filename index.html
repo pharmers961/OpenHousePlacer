@@ -1143,12 +1143,10 @@ $('go').addEventListener('click', async () => {
 
     renderResults(true);
 
-    let note = '';
-    if(ordered.length < wantCount){
-      note = ' — only ' + ordered.length + ' of ' + wantCount + ' (not enough road points within ' + maxDriveMin + ' min; raise the limit for more)';
-    }
+    const fewer = ordered.length < wantCount;
     saveSession();
-    setStatus('Done — ' + ordered.length + ' spots, all within ' + maxDriveMin + ' min' + note + '. (Placement uses road class, not traffic volume.)');
+    setStatus(ordered.length + ' spots within ' + maxDriveMin + ' min' +
+      (fewer ? ' (max found — raise the limit for more)' : '') + '.');
   }catch(err){
     setStatus(err.message || 'Something went wrong.', true);
   }finally{
