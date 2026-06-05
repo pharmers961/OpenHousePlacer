@@ -9,14 +9,19 @@
  *  file (Supabase magic link + checkout) and remove the admin bypass.
  * ========================================================================= */
 (function () {
-  const ADMIN_URL = 'app.html?admin=1';
+  const ADMIN_URL = 'app.html';
   const $ = (id) => document.getElementById(id);
   const modal = $('loginModal');
 
-  // --- Admin test: go straight into the app (bypasses login + payment) ---
+  // --- Admin test: prompt for the access code, then enter the app ---
+  // We compare a hash so the code itself isn't sitting in the page source.
+  const ADMIN_CODE_HASH = 4059872811;
+  function codeHash(s) { s = String(s); let h = 5381; for (let i = 0; i < s.length; i++) { h = ((h << 5) + h) + s.charCodeAt(i); h |= 0; } return h >>> 0; }
   function gotoAdmin() {
-    try { localStorage.setItem('sd_admin', '1'); } catch (e) {}
-    location.href = ADMIN_URL;
+    const code = prompt('Enter admin access code:');
+    if (code == null) return; // cancelled
+    if (codeHash(code.trim()) !== ADMIN_CODE_HASH) { alert('Incorrect access code.'); return; }
+    location.href = ADMIN_URL + '?admin=' + encodeURIComponent(code.trim());
   }
   ['navAdmin', 'heroAdmin', 'modalAdmin'].forEach((id) => {
     const el = $(id); if (el) el.addEventListener('click', gotoAdmin);

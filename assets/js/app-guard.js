@@ -14,16 +14,22 @@
 
   injectStyles();
 
-  // --- Admin test bypass -----------------------------------------------------
-  // "Admin test" (from the home page, ?admin=1) skips Supabase auth AND the
-  // paywall entirely and drops straight into the tool. Persisted so refreshes
-  // inside the app stay in test mode. Exit clears it and returns home.
+  // --- Admin test bypass (code-gated) ---------------------------------------
+  // "Admin test" enters the tool without Supabase/paywall, but ONLY with the
+  // correct access code (?admin=CODE). We store just a hash of the code here —
+  // never the word itself — and persist a flag so refreshes stay in test mode.
+  // Exit (chip) clears it and returns home.
+  function codeHash(s){ s=String(s); let h=5381; for(let i=0;i<s.length;i++){ h=((h<<5)+h)+s.charCodeAt(i); h|=0; } return h>>>0; }
+  const ADMIN_CODE_HASH = 4059872811;
   const _params = new URLSearchParams(location.search);
-  let _admin = _params.get('admin') === '1';
-  try {
-    if (_admin) localStorage.setItem('sd_admin', '1');
-    else if (localStorage.getItem('sd_admin') === '1') _admin = true;
-  } catch (e) {}
+  let _admin = false;
+  const _code = _params.get('admin');
+  if (_code != null) {
+    _admin = codeHash(_code.trim()) === ADMIN_CODE_HASH;
+    try { if (_admin) localStorage.setItem('sd_admin', 'ok'); } catch (e) {}
+  } else {
+    try { _admin = localStorage.getItem('sd_admin') === 'ok'; } catch (e) {}
+  }
   if (_admin) { mountTestChip(); return; }
   // ---------------------------------------------------------------------------
 
