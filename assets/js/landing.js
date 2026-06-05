@@ -92,7 +92,7 @@
       start.textContent = 'Choose a plan';
       start.onclick = () => location.hash = '#pricing';
     } else {
-      login.textContent = 'Log in';
+      login.textContent = 'Sign in';
       login.onclick = () => openLogin(null);
       start.textContent = 'Get started';
       start.onclick = onStart;
@@ -134,7 +134,7 @@
   // ---- login modal ----
   function openLogin(planToResume) {
     intendedPlan = planToResume;
-    $('modalTitle').textContent = planToResume ? 'Sign in to continue' : 'Log in';
+    $('modalTitle').textContent = planToResume ? 'Sign in to continue' : 'Sign in';
     $('modalSub').textContent = planToResume
       ? "Enter your email — we'll send a secure link, then take you to checkout."
       : "Enter your email and we'll send you a secure sign-in link.";
