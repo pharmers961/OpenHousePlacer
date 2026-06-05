@@ -4,8 +4,9 @@
 import { stripe, adminDb, getUser, ensureStripeCustomer, appUrl, json } from './lib/helpers.mjs';
 
 const PRICE_BY_PLAN = {
-  agent: () => process.env.AGENT_PRICE_ID,
-  enterprise: () => process.env.ENTERPRISE_PRICE_ID,
+  agent: () => process.env.AGENT_PRICE_ID,            // Individual — $20/yr, 1 seat
+  brokerage: () => process.env.ENTERPRISE_PRICE_ID,   // Small Brokerage — $499/yr, up to 25 seats
+  enterprise: () => process.env.ENTERPRISE_PRICE_ID,  // (alias; the public Enterprise tier is contact-sales)
 };
 
 export default async (req) => {
@@ -30,8 +31,8 @@ export default async (req) => {
     customer: customerId,
     line_items: [{ price, quantity: 1 }],
     allow_promotion_codes: true,
-    success_url: `${base}/?checkout=success`,
-    cancel_url: `${base}/?checkout=cancelled`,
+    success_url: `${base}/app.html?checkout=success`,
+    cancel_url: `${base}/#pricing`,
     // Carried through to the webhook so we know who paid and for what.
     subscription_data: {
       metadata: { supabase_user_id: user.id, plan, company_name: companyName || '' },

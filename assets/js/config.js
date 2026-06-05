@@ -10,8 +10,10 @@ window.SIGNDEPLOYER_CONFIG = {
   SUPABASE_URL: 'https://bzpmthgktbmbxiqkufmh.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_uEqnw-_V18C0cfdQ8h6Dow_9b5gtoOu',
 
-  // Display-only price labels shown on the paywall. The REAL prices live in
-  // Stripe and are enforced by the server — changing these can't grant access.
-  AGENT_PRICE_LABEL: '$19.99 / year',
-  ENTERPRISE_PRICE_LABEL: '$499 / year',
+  // Display-only price labels (the real prices live in Stripe and are enforced
+  // by the server — changing these can't grant access). The landing page also
+  // hard-codes these in its pricing cards.
+  AGENT_PRICE_LABEL: '$20 / year',
+  BROKERAGE_PRICE_LABEL: '$499 / year',
+  ENTERPRISE_PRICE_LABEL: 'Contact us',
 };

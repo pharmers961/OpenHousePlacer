@@ -62,7 +62,8 @@ async function applySubscription(db, sub) {
     ? new Date(sub.current_period_end * 1000).toISOString()
     : null;
 
-  if (plan === 'enterprise') {
+  // Brokerage and Enterprise are company plans (seats + branding).
+  if (plan === 'brokerage' || plan === 'enterprise') {
     // Create/update the company, and mark the buyer as its owner.
     let { data: company } = await db
       .from('companies')
@@ -93,7 +94,7 @@ async function applySubscription(db, sub) {
     if (userId && company) {
       await db
         .from('profiles')
-        .update({ plan: 'enterprise', company_id: company.id, company_role: 'owner' })
+        .update({ plan, company_id: company.id, company_role: 'owner' })
         .eq('id', userId);
     }
     return;
