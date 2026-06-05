@@ -1,5 +1,5 @@
 /* ===========================================================================
- * SignScout — login + paywall + Enterprise branding (client side)
+ * SignDeployer — login + paywall + Enterprise branding (client side)
  *
  * Activates ONLY when assets/js/config.js holds real Supabase values.
  * Until then this file no-ops and the app behaves exactly as before.
@@ -9,7 +9,7 @@
  * The browser is never the source of truth for payment.
  * ========================================================================= */
 (function () {
-  const cfg = window.SIGNSCOUT_CONFIG || {};
+  const cfg = window.SIGNDEPLOYER_CONFIG || {};
   const configured =
     cfg.SUPABASE_URL &&
     !cfg.SUPABASE_URL.includes('YOUR-PROJECT') &&
@@ -17,11 +17,11 @@
     !cfg.SUPABASE_ANON_KEY.includes('YOUR-');
 
   if (!configured) {
-    console.info('[SignScout] Paywall not configured yet — running in open mode.');
+    console.info('[SignDeployer] Paywall not configured yet — running in open mode.');
     return;
   }
   if (!window.supabase) {
-    console.error('[SignScout] Supabase library not loaded.');
+    console.error('[SignDeployer] Supabase library not loaded.');
     return;
   }
 
@@ -101,7 +101,7 @@
   function showSignedOut() {
     ui.overlay.style.display = 'flex';
     ui.body.innerHTML = `
-      <h2 class="ss-h">Sign in to SignScout</h2>
+      <h2 class="ss-h">Sign in to SignDeployer</h2>
       <p class="ss-muted">Enter your email and we'll send you a secure sign-in link.</p>
       <form id="ss-login">
         <input id="ss-email" type="email" required placeholder="you@brokerage.com" />
@@ -236,7 +236,7 @@
     card.className = 'ss-card';
     const logo = document.createElement('div');
     logo.className = 'ss-brand';
-    logo.textContent = 'SignScout';
+    logo.textContent = 'SignDeployer';
     const body = document.createElement('div');
     body.className = 'ss-cardbody';
     const foot = document.createElement('div');

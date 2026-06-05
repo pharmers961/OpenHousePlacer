@@ -1,6 +1,6 @@
-# SignScout — Paid Plans Setup Guide
+# SignDeployer — Paid Plans Setup Guide
 
-This turns SignScout from a free static page into a subscription product:
+This turns SignDeployer from a free static page into a subscription product:
 
 - **Agent** — $19.99 / year, one real-estate agent.
 - **Enterprise** — fixed annual price, unlimited agents + your company's branding.
@@ -30,7 +30,7 @@ Stripe → (webhook) → our backend → updates the database → unlocks the ag
 ## Step 1 — Create a Supabase project (the database + login)
 
 1. Go to <https://supabase.com> → **Start your project** → sign in with GitHub.
-2. **New project**. Pick a name (e.g. `signscout`), set a database password
+2. **New project**. Pick a name (e.g. `signdeployer`), set a database password
    (save it somewhere), choose a region near your users. Wait ~2 min.
 3. Left sidebar → **SQL Editor** → **New query**. Open the file
    [`supabase/schema.sql`](supabase/schema.sql) from this repo, copy ALL of it,
@@ -69,7 +69,7 @@ Stripe → (webhook) → our backend → updates the database → unlocks the ag
    import this repository.
 3. Framework preset: **Other** (it's a static site + `/api` functions). Click
    **Deploy**. Wait for the first deploy to finish — note the URL it gives you
-   (e.g. `https://signscout.vercel.app`).
+   (e.g. `https://signdeployer.vercel.app`).
 4. In the Vercel project → **Settings → Environment Variables**. Add each of
    these (from Steps 1–2). Use the names exactly:
 

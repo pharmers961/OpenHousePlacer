@@ -2,10 +2,10 @@
  * PUBLIC config — safe to commit. These are publishable values, not secrets.
  *
  * IMPORTANT: Until you replace the two "YOUR-..." placeholders below, the
- * paywall stays OFF and SignScout runs exactly as it does today. The moment
+ * paywall stays OFF and SignDeployer runs exactly as it does today. The moment
  * real Supabase values are present, login + the paywall switch on.
  * ------------------------------------------------------------------------- */
-window.SIGNSCOUT_CONFIG = {
+window.SIGNDEPLOYER_CONFIG = {
   // Supabase → Project Settings → API
   SUPABASE_URL: 'https://YOUR-PROJECT.supabase.co',
   SUPABASE_ANON_KEY: 'YOUR-SUPABASE-ANON-KEY',

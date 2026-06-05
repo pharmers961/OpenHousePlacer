@@ -1,9 +1,9 @@
 {
-  "name": "signscout",
+  "name": "signdeployer",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "SignScout — open house sign placement, with paid agent & enterprise plans.",
+  "description": "SignDeployer — open house sign placement, with paid agent & enterprise plans.",
   "scripts": {
     "dev": "vercel dev",
     "deploy": "vercel --prod"
