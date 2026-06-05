@@ -160,7 +160,7 @@
       <a class="link hide-sm" href="#how">How it works</a>
       <a class="link" href="#pricing">Pricing</a>
       <a class="btn" id="navLogin">Sign in</a>
-      <a class="btn primary" id="navStart">Get started</a>
+      <a class="btn primary" id="navAdmin">Admin test</a>
     </nav>
   </div>
 </header>
@@ -173,14 +173,15 @@
       <h1>Put your open house signs where buyers actually drive.</h1>
       <p class="sub">SignDeployer analyzes the real road network and the routes people take to reach your listing, then maps the highest-visibility corners for your directional signs — in seconds.</p>
       <div class="hero-cta">
-        <a class="btn primary lg" id="heroStart">Get started</a>
+        <a class="btn primary lg" id="heroAdmin">Try the app — Admin test</a>
         <a class="btn lg" href="#pricing">See pricing</a>
       </div>
-      <div class="trust">No spreadsheets. No guesswork. Cancel anytime.</div>
+      <div class="trust">Sign-in &amp; checkout are coming soon — preview the full app now with Admin&nbsp;test.</div>
     </div>
 
-    <!-- App preview: shows a real screenshot if you add assets/img/app-screenshot.png,
-         otherwise a styled mockup of the app. -->
+    <!-- App preview: a sample sign plan. Shows a real screenshot if you add
+         assets/img/app-screenshot.png, otherwise a styled mockup of the app. -->
+    <div>
     <div class="shot">
       <div class="chrome"><i></i><i></i><i></i></div>
       <img src="assets/img/app-screenshot.png" alt="SignDeployer app preview"
@@ -207,6 +208,8 @@
           <div class="pin" style="left:60px; top:235px;">5</div>
         </div>
       </div>
+    </div>
+    <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px;">A sample sign plan in SignDeployer</div>
     </div>
   </div>
 </section>
@@ -293,12 +296,13 @@
     <div class="head">SignDeployer</div>
     <div class="body">
       <button class="close" id="modalClose" aria-label="Close">&times;</button>
-      <h3 id="modalTitle">Log in</h3>
-      <p id="modalSub">Enter your email and we'll send you a secure sign-in link.</p>
+      <h3 id="modalTitle">Sign in</h3>
+      <p id="modalSub">Accounts &amp; checkout are coming soon. For now, preview the full app with Admin&nbsp;test.</p>
       <form id="loginForm">
-        <input id="loginEmail" type="email" required placeholder="you@brokerage.com" />
-        <button class="btn primary block" type="submit">Email me a link</button>
+        <input id="loginEmail" type="email" placeholder="you@brokerage.com" disabled />
+        <button class="btn primary block" type="submit" disabled>Email me a link — coming soon</button>
       </form>
+      <a class="btn block" id="modalAdmin" style="margin-top:10px;cursor:pointer">Open Admin test →</a>
       <p id="loginMsg" style="min-height:18px"></p>
     </div>
   </div>

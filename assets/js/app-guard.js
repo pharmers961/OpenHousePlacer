@@ -13,6 +13,20 @@
     cfg.SUPABASE_ANON_KEY && !cfg.SUPABASE_ANON_KEY.includes('YOUR-');
 
   injectStyles();
+
+  // --- Admin test bypass -----------------------------------------------------
+  // "Admin test" (from the home page, ?admin=1) skips Supabase auth AND the
+  // paywall entirely and drops straight into the tool. Persisted so refreshes
+  // inside the app stay in test mode. Exit clears it and returns home.
+  const _params = new URLSearchParams(location.search);
+  let _admin = _params.get('admin') === '1';
+  try {
+    if (_admin) localStorage.setItem('sd_admin', '1');
+    else if (localStorage.getItem('sd_admin') === '1') _admin = true;
+  } catch (e) {}
+  if (_admin) { mountTestChip(); return; }
+  // ---------------------------------------------------------------------------
+
   const gate = buildGate();
   document.body.appendChild(gate.el);
 
@@ -99,6 +113,19 @@
   }
 
   async function signOut() { await sb.auth.signOut(); location.href = '/'; }
+
+  // ---- admin test mode chip ----
+  function mountTestChip() {
+    const chip = document.createElement('div');
+    chip.className = 'sd-chip';
+    chip.innerHTML = `<span>🔧 Admin test mode</span><button class="sd-link" id="sd-exit">Exit</button>`;
+    document.body.appendChild(chip);
+    const btn = document.getElementById('sd-exit');
+    if (btn) btn.addEventListener('click', () => {
+      try { localStorage.removeItem('sd_admin'); } catch (e) {}
+      location.href = '/';
+    });
+  }
 
   // ---- gate overlay + helpers ----
   function buildGate() {
