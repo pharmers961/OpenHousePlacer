@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SignDeployer — Open House Sign Placement | Luxe Realty Group</title>
+
+<!-- Mapbox GL JS. Verify the latest version against current Mapbox docs before relying on it. -->
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.js"></script>
+
+<!-- Montserrat: closest free match to the Luxe geometric-sans wordmark -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --ink:#0a0a0a;        /* near-black, Luxe primary */
+    --paper:#ffffff;      /* light interface */
+    --soft:#f5f5f4;       /* subtle panel fill */
+    --accent:#0a0a0a;     /* monochrome accent (brand is B/W) */
+    --accent-soft:#3a3a3a;
+    --line:#e2e0dc;       /* hairline dividers */
+    --muted:#5f5d58;      /* secondary text (darkened for WCAG AA / outdoor legibility) */
+    --ink-hover:#2b2b2b;  /* primary button hover */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Montserrat",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    display:flex;
+    height:100vh;
+    height:100dvh; /* dynamic viewport height: avoids the mobile toolbar cutting off the map/legend */
+    overflow:hidden;
+  }
+
+  /* ---- Sidebar ---- */
+  .panel{
+    width:380px;
+    min-width:380px;
+    height:100%;
+    background:
+      linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0) 22%),
+      var(--paper);
+    border-right:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    box-shadow:6px 0 28px rgba(0,0,0,0.06);
+    z-index:2;
+  }
+  /* Black brand band with the white Luxe logo, echoing the site's dark sections */
+  .brand{
+    padding:28px 26px 24px;
+    background:#0a0a0a;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    transition:padding .25s ease;
+  }
+  .brand img.logo{
+    width:96px; height:auto; display:block; margin:0 0 14px;
+    transition:width .25s ease, margin .25s ease;
+  }
+  .brand .appname{
+    margin:0;
+    font-size:30px;
+    font-weight:700;
+    letter-spacing:1px;
+    color:#fff;
+    line-height:1;
+    text-transform:none;
+    transition:font-size .25s ease;
+  }
+  .brand p{
+    margin-top:8px;
+    font-size:10.5px;
+    font-weight:500;
+    letter-spacing:3px;
+    color:#bdbbb6;
+    text-transform:uppercase;
+    max-height:20px; opacity:1;
+    transition:max-height .25s ease, opacity .2s ease, margin .25s ease;
+  }
+  /* When scrolled: logo shrinks and moves to the LEFT of the SignDeployer name */
+  .brand.scrolled{
+    flex-direction:row;
+    gap:12px;
+    padding-top:14px;
+    padding-bottom:14px;
+  }
+  .brand.scrolled img.logo{ width:96px; margin:0; }
+  .brand.scrolled .appname{ font-size:22px; }
+  .brand.scrolled p{ max-height:0; width:0; opacity:0; margin:0; overflow:hidden; }
+
+  .scroll{ overflow-y:auto; flex:1; padding:24px 26px 30px; }
+
+  label.fld{
+    display:block;
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--ink);
+    margin-bottom:8px;
+  }
+  input[type=text],input[type=password]{
+    width:100%;
+    padding:13px 14px;
+    border:1.5px solid var(--line);
+    background:#fff;
+    font-family:inherit;
+    font-size:15px;
+    color:var(--ink);
+    border-radius:2px;
+    outline:none;
+    transition:border-color .15s;
+  }
+  input:focus{ border-color:var(--ink); }
+  .gap{ height:18px; }
+
+  .ac-wrap{ position:relative; }
+  .ac-list{
+    position:absolute; top:100%; left:0; right:0; z-index:20;
+    background:#fff; border:1.5px solid var(--ink); border-top:none;
+    max-height:240px; overflow-y:auto;
+    box-shadow:0 10px 24px rgba(0,0,0,0.14);
+  }
+  .ac-item{
+    padding:11px 14px; font-size:14px; cursor:pointer;
+    border-bottom:1px solid var(--line); line-height:1.3;
+  }
+  .ac-item:last-child{ border-bottom:none; }
+  .ac-item:hover, .ac-item.active{ background:var(--soft); }
+  .ac-item .sub{ display:block; font-size:11.5px; color:var(--muted); margin-top:2px; }
+
+  .key-note{
+    font-size:11.5px;
+    line-height:1.5;
+    color:var(--muted);
+    margin-top:8px;
+  }
+  .key-note a{ color:var(--ink); font-weight:600; }
+
+  button.go{
+    margin-top:24px;
+    width:100%;
+    padding:15px;
+    border:none;
+    background:var(--ink);
+    color:#fff;
+    font-family:inherit;
+    font-weight:600;
+    font-size:12px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    cursor:pointer;
+    border-radius:2px;
+    transition:background .15s, transform .05s;
+  }
+  button.go:hover{ background:var(--ink-hover); }
+  button.go:active{ transform:translateY(1px); }
+  button.go:disabled{ background:#bdbbb6; cursor:not-allowed; }
+  /* Visible focus rings for keyboard users (a11y) */
+  button.go:focus-visible, a.navbtn:focus-visible{
+    outline:3px solid #2b6cb0; outline-offset:2px;
+  }
+
+  .disclaimer{
+    margin-top:14px;
+    padding:13px 15px;
+    background:var(--soft);
+    border-left:3px solid var(--ink);
+    font-size:12px;
+    line-height:1.55;
+    color:var(--accent-soft);
+  }
+  .disclaimer b{ color:var(--ink); }
+  #howMore .extra{ display:block; margin-top:8px; }
+  /* CTA row: Find button + compact (i) info button side by side */
+  .cta-row{ margin-top:24px; display:flex; align-items:stretch; gap:10px; }
+  .cta-row .go{ margin-top:0; flex:1; }
+  .info-btn{
+    width:20px; height:20px; flex:0 0 20px; align-self:center;
+    border-radius:50%;
+    border:1.5px solid var(--ink);
+    background:#fff; color:var(--ink);
+    font-family:Georgia, "Times New Roman", serif;
+    font-style:italic; font-weight:700; font-size:11px;
+    line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:background .15s, color .15s;
+  }
+  .info-btn:hover, .info-btn[aria-expanded="true"]{ background:var(--ink); color:#fff; }
+  .info-btn:focus-visible{ outline:3px solid #2b6cb0; outline-offset:2px; }
+
+  .status{
+    margin-top:16px;
+    font-size:12px;
+    font-weight:500;
+    letter-spacing:0.3px;
+    color:var(--accent-soft);
+    min-height:16px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .status.err{ color:#b00020; }
+  .spinner{
+    flex:0 0 14px;
+    width:14px; height:14px;
+    border:2px solid var(--line);
+    border-top-color:var(--ink);
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .results{ margin-top:8px; }
+  .results h2, .nav h2{
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--ink);
+    margin:26px 0 12px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:9px;
+  }
+  .spot{
+    display:flex;
+    gap:13px;
+    align-items:flex-start;
+    padding:12px 10px;
+    margin:0 -10px;
+    border-bottom:1px solid var(--line);
+    border-radius:3px;
+    cursor:pointer;
+    transition:background .12s;
+  }
+  .spot:hover{ background:var(--soft); }
+  .spot:hover .num{ background:#fff; color:var(--ink); border-color:var(--ink); }
+  .num{
+    flex:0 0 27px;
+    height:27px;
+    border-radius:50%;
+    background:var(--ink);
+    color:#fff;
+    border:1.5px solid var(--ink);
+    font-size:12px;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-top:1px;
+    transition:.15s;
+  }
+  .spot .meta{ font-size:13.5px; line-height:1.4; flex:1; }
+  .spot .meta .road{ font-weight:600; }
+  .spot .rm{
+    flex:0 0 22px; width:22px; height:22px; align-self:center;
+    border:none; background:none; cursor:pointer;
+    font-size:20px; line-height:1; color:var(--muted);
+    border-radius:50%; transition:.12s;
+  }
+  .spot .rm:hover{ background:#f0d6d9; color:#b00020; }
+  .spot .meta .why{ color:var(--muted); font-size:12px; text-transform:capitalize; }
+
+  /* ---- Map ---- */
+  #map{ flex:1; height:100%; position:relative; }
+
+  .navnote{ font-size:12px; line-height:1.5; color:var(--muted); margin-bottom:12px; }
+  .navnote.warn{ color:#8a5a00; margin-top:14px; }
+  a.navbtn{
+    display:block; text-align:center; text-decoration:none;
+    padding:14px; background:var(--ink); color:#fff;
+    font-weight:600; font-size:11px; letter-spacing:2px;
+    text-transform:uppercase; border-radius:2px; transition:opacity .15s;
+  }
+  a.navbtn:hover{ opacity:0.82; }
+  ol.overflow{ margin:6px 0 0 18px; padding:0; }
+  ol.overflow li{ margin:8px 0; font-size:13px; }
+  ol.overflow a{ color:var(--ink); font-weight:500; }
+
+  .legend{
+    position:absolute;
+    bottom:18px; left:18px;
+    background:rgba(255,255,255,0.96);
+    border:1px solid var(--line);
+    padding:11px 15px;
+    font-size:11px;
+    font-weight:500;
+    letter-spacing:0.3px;
+    color:var(--ink);
+    border-radius:2px;
+    z-index:3;
+    box-shadow:0 6px 18px rgba(0,0,0,0.1);
+  }
+  .legend-toggle{
+    display:none; /* desktop: header hidden, key always shown */
+    width:100%; align-items:center; justify-content:space-between; gap:10px;
+    background:none; border:none; padding:0; cursor:pointer;
+    font:inherit; color:var(--ink); font-weight:600;
+    text-transform:uppercase; letter-spacing:1px;
+  }
+  .legend-caret{ transition:transform .15s; }
+  .legend.collapsed .legend-caret{ transform:rotate(-90deg); }
+  .legend.collapsed .legend-body{ display:none; }
+  .legend.collapsed{ padding:8px 12px; }
+  .legend .row{ display:flex; align-items:center; gap:7px; margin:3px 0; }
+  .legend .dot{ width:11px;height:11px;border-radius:50%; }
+  /* Luxe square mark used both as the listing marker and in the legend */
+  .legend .home-ico{
+    width:15px;height:15px;background:#0a0a0a;border-radius:3px;
+    display:flex;align-items:center;justify-content:center;flex:0 0 15px;
+  }
+  .legend .home-ico svg{ width:11px;height:11px; }
+
+  .marker{
+    width:28px;height:28px;border-radius:50%;
+    background:var(--ink);
+    border:2px solid #fff;
+    box-shadow:0 2px 8px rgba(0,0,0,0.35);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .marker span{ color:#fff; font-size:12px; font-weight:600; }
+  /* The listing renders as the Luxe square logo tile */
+  .marker.home{
+    width:40px;height:40px;background:#0a0a0a;border:2px solid #fff;
+    border-radius:7px;
+  }
+  .marker.home svg{ width:24px;height:24px; }
+  .marker.fallback{ background:var(--accent-soft); }
+  .marker.manual{ background:#b00020; }
+
+  @media (max-width:760px){
+    body{ flex-direction:column; }
+    .panel{ width:100%; min-width:0; height:auto; max-height:62%; }
+    #map{ flex:1; min-height:38vh; }
+    /* Compact the brand band on phones so the form + button fit without cutoff */
+    .brand{ padding:14px 26px 12px; }
+    .brand img.logo{ width:72px; margin-bottom:8px; }
+    .brand.scrolled img.logo{ width:72px; }
+    .brand .appname{ font-size:24px; }
+    .brand p{ margin-top:6px; font-size:9.5px; letter-spacing:2.5px; }
+    .scroll{ padding:16px 22px 22px; }
+    .gap{ height:12px; }
+    .cta-row{ margin-top:16px; }
+    button.go{ padding:14px; }
+    /* On phones, pin the legend to the TOP-LEFT and make it a collapsible
+       "Key" pill so it never covers the pins. Toggle shown; starts collapsed. */
+    .legend{
+      top:12px; left:12px; right:auto; bottom:auto;
+      max-width:75%;
+      font-size:10.5px; padding:8px 12px;
+    }
+    .legend-toggle{ display:flex; }
+    .legend-body{ margin-top:8px; }
+    .legend .row{ margin:2px 0; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="panel">
+  <div class="brand">
+    <img class="logo" id="brandLogo" alt="Luxe Realty Group" />
+    <h1 class="appname">SignDeployer</h1>
+    <p>Open House Sign Placement</p>
+  </div>
+
+  <div class="scroll">
+    <label class="fld" for="addr">Address of the listing</label>
+    <div class="ac-wrap">
+      <input id="addr" type="text" placeholder="Start typing an address…" autocomplete="off" />
+      <div id="ac" class="ac-list" hidden></div>
+    </div>
+    <div class="key-note" id="addrHint"></div>
+
+    <div class="gap"></div>
+
+    <label class="fld" for="count">Number of signs — <span id="countVal">10</span></label>
+    <input id="count" type="range" min="1" max="20" value="10" step="1" style="width:100%;accent-color:#0a0a0a;cursor:pointer;" />
+
+    <div class="gap"></div>
+
+    <label class="fld" for="drive">Max drive time from house — <span id="driveVal">8</span> min</label>
+    <input id="drive" type="range" min="1" max="15" value="8" step="1" style="width:100%;accent-color:#0a0a0a;cursor:pointer;" />
+
+    <div class="gap"></div>
+
+    <div class="cta-row">
+      <button class="go" id="go">Find <span id="goCount">10</span> sign spots</button>
+      <button type="button" id="infoBtn" class="info-btn" aria-expanded="false" aria-controls="howMore" title="How spots are chosen">i</button>
+    </div>
+    <div class="disclaimer" id="howMore" hidden>
+      <b>How spots are chosen:</b> SignDeployer ranks corners by road size and the actual driving routes people take to reach the
+      listing — so your signs land where buyers will see them.
+      <span class="extra">It scores candidate points using road classification (highway → residential) and approach routes, not
+      measured traffic counts — so treat it as a strong starting point and adjust with your local knowledge.</span>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <div class="results" id="results"></div>
+    <div class="nav" id="nav"></div>
+  </div>
+</aside>
+
+<div id="map">
+  <div class="legend" id="legend">
+    <button type="button" class="legend-toggle" id="legendToggle" aria-expanded="true" aria-controls="legendBody">
+      <span class="legend-title">Key</span><span class="legend-caret" aria-hidden="true">▾</span>
+    </button>
+    <div class="legend-body" id="legendBody">
+      <div class="row"><span class="home-ico" id="legendHomeIco"></span> The listing (Luxe mark)</div>
+      <div class="row"><span class="dot" style="background:#0a0a0a"></span> Sign spot (ordered for driving)</div>
+      <div class="row"><span class="dot" style="background:#b00020"></span> Manually placed sign</div>
+      <div class="row" style="font-size:10px;color:var(--muted);margin-top:2px" id="legendAddHint">Right-click the map to add a sign manually</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   SignDeployer
+   ------------------------------------------------------------
+   IMPORTANT HONESTY NOTE (read before trusting output):
+   This tool does NOT use real traffic-volume data. It uses the
+   Mapbox Geocoding + Directions APIs to find the road network
+   around the listing, then scores candidate points by:
+     - road importance (does an approach route pass through it)
+     - distance spread (coverage around the property)
+     - proximity to the listing (closer decision points rank up)
+   The result is a defensible heuristic, not a guarantee of the
+   "highest traffic" corners. Verify Mapbox API endpoints/params
+   against current docs (https://docs.mapbox.com) — they change.
+   ============================================================ */
+
+/* ------------------------------------------------------------------
+   Mapbox token — baked in so agents never have to enter one.
+   IMPORTANT: paste Luxe's PUBLIC token (starts with "pk.") below and
+   restrict it to the production domain in the Mapbox dashboard
+   (Account → Tokens → URL restrictions). A domain-locked public token
+   is the supported pattern for a static site like this.
+   ------------------------------------------------------------------ */
+const MAPBOX_TOKEN = 'pk.eyJ1IjoicGhhcm1lcnM5MjUiLCJhIjoiY21wcnJpcmcxMTF2eDJycHI1aDVkZ3R6bSJ9.LMViGVOyUKq2AUvbKDPlog';
+
+const $ = id => document.getElementById(id);
+const statusEl = $('status');
+const TOKEN_OK = /^pk\./.test(MAPBOX_TOKEN);
+// Embedded Luxe Realty Group logo (white, for the dark brand band)
+const LUXE_LOGO = 'data:image/png;base64,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';
+(function(){ var el=document.getElementById('brandLogo'); if(el) el.src = LUXE_LOGO; })();
+
+// Collapse the logo (keep the name) once the panel is scrolled a little.
+(function(){
+  const scroller = document.querySelector('.scroll');
+  const brand = document.querySelector('.brand');
+  if(!scroller || !brand) return;
+  const onScroll = () => brand.classList.toggle('scrolled', scroller.scrollTop > 8);
+  scroller.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
+})();
+
+// (i) info button — toggles the "How spots are chosen" explainer
+(function(){
+  const btn = document.getElementById('infoBtn'), more = document.getElementById('howMore');
+  if(btn && more){
+    more.hidden = true;
+    btn.addEventListener('click', () => {
+      const open = more.hidden;
+      more.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+    });
+  }
+})();
+
+let map, markers = [];
+let lastHome = null, lastOrdered = null;
+// Current rendered route state (so manually-added signs can re-render the list)
+let curHome = null, curOrdered = [], curMeta = { optimized:false };
+let selectedCoord = null; // set when user picks an autocomplete suggestion
+
+// Initialize the map as soon as a valid-looking token is present, so the
+// user sees a real map instead of a confusing grey box. Surfaces load errors
+// as visible status text instead of failing silently.
+function ensureMap(token){
+  if(map) return true;
+  if(!token || !token.startsWith('pk.')) return false;
+  mapboxgl.accessToken = token;
+  try{
+    map = new mapboxgl.Map({
+      container:'map',
+      style:'mapbox://styles/mapbox/light-v11', // clean light basemap; verify URL in current Mapbox docs
+      center:[-98.5, 39.8], // continental US default until an address is set
+      zoom:3.2
+    });
+    map.on('error', e => {
+      const msg = (e && e.error && e.error.message) ? e.error.message : 'Map failed to load.';
+      setStatus('Map error: ' + msg + ' (check your token is valid & authorized for this site)', true);
+    });
+    wireManualPlacement(); // right-click / long-press to drop a manual sign
+    return true;
+  }catch(err){
+    setStatus('Could not start the map: ' + (err.message||err), true);
+    return false;
+  }
+}
+
+$('drive').addEventListener('input', e => { $('driveVal').textContent = e.target.value; });
+$('count').addEventListener('input', e => {
+  $('countVal').textContent = e.target.value;
+  $('goCount').textContent = e.target.value;
+});
+
+// Restore the agent's last session (address + slider settings) so a refresh
+// doesn't wipe their work.
+(function restoreSession(){
+  try{
+    const s = JSON.parse(localStorage.getItem('signdeployer') || '{}');
+    if(s.addr){ $('addr').value = s.addr; }
+    if(s.count){ $('count').value = s.count; $('countVal').textContent = s.count; $('goCount').textContent = s.count; }
+    if(s.drive){ $('drive').value = s.drive; $('driveVal').textContent = s.drive; }
+  }catch(e){ /* ignore corrupt storage */ }
+})();
+function saveSession(){
+  try{
+    localStorage.setItem('signdeployer', JSON.stringify({
+      addr: $('addr').value.trim(),
+      count: $('count').value,
+      drive: $('drive').value
+    }));
+  }catch(e){ /* storage may be unavailable */ }
+}
+
+// Bring the map up immediately on load so the agent never sees a blank
+// screen. If the token hasn't been configured yet, show a clear message.
+if(TOKEN_OK){
+  ensureMap(MAPBOX_TOKEN);
+} else {
+  $('addrHint').textContent = 'Setup needed: a Mapbox token has not been configured for this site yet.';
+  setStatus('This tool isn’t configured yet — the Mapbox token is missing. Contact your admin.', true);
+}
+
+// ---- Address autocomplete (Mapbox Geocoding) ----
+// Debounced suggestions as the user types. Verify the geocoding endpoint
+// supports autocomplete on your token; it cannot be tested here.
+let acTimer = null, acItems = [], acActive = -1;
+const acEl = $('ac');
+
+function hideAC(){ acEl.hidden = true; acEl.innerHTML = ''; acItems = []; acActive = -1; }
+
+async function fetchSuggestions(q, token){
+  const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
+    encodeURIComponent(q) + '.json?autocomplete=true&limit=5&types=address,place&access_token=' + token;
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('Address lookup failed (' + r.status + ').');
+  const d = await r.json();
+  return (d.features || []).map(f => ({
+    full: f.place_name,
+    main: f.text || f.place_name,
+    center: f.center // [lng, lat]
+  }));
+}
+
+function renderAC(){
+  if(!acItems.length){ hideAC(); return; }
+  acEl.innerHTML = acItems.map((it, i) =>
+    '<div class="ac-item' + (i===acActive?' active':'') + '" data-i="'+i+'">' +
+      it.main + '<span class="sub">' + it.full + '</span>' +
+    '</div>'
+  ).join('');
+  acEl.hidden = false;
+  acEl.querySelectorAll('.ac-item').forEach(el => {
+    el.addEventListener('mousedown', ev => {        // mousedown beats input blur
+      ev.preventDefault();
+      pickAC(parseInt(el.dataset.i,10));
+    });
+  });
+}
+
+function pickAC(i){
+  const it = acItems[i];
+  if(!it) return;
+  $('addr').value = it.full;
+  selectedCoord = it.center;
+  hideAC();
+}
+
+$('addr').addEventListener('input', () => {
+  selectedCoord = null; // typing invalidates a prior pick
+  const q = $('addr').value.trim();
+  clearTimeout(acTimer);
+  if(q.length < 3){ hideAC(); return; }
+  if(!TOKEN_OK){
+    $('addrHint').textContent = 'This tool isn’t configured yet (missing Mapbox token).';
+    return;
+  }
+  acTimer = setTimeout(async () => {
+    try{
+      acItems = await fetchSuggestions(q, MAPBOX_TOKEN);
+      acActive = -1;
+      renderAC();
+    }catch(e){
+      hideAC();
+      setStatus(e.message, true);
+    }
+  }, 280); // debounce to limit API calls
+});
+
+// keyboard navigation of the suggestion list
+$('addr').addEventListener('keydown', e => {
+  if(acEl.hidden) return;
+  if(e.key === 'ArrowDown'){ e.preventDefault(); acActive = Math.min(acActive+1, acItems.length-1); renderAC(); }
+  else if(e.key === 'ArrowUp'){ e.preventDefault(); acActive = Math.max(acActive-1, 0); renderAC(); }
+  else if(e.key === 'Enter' && acActive >= 0){ e.preventDefault(); pickAC(acActive); }
+  else if(e.key === 'Escape'){ hideAC(); }
+});
+$('addr').addEventListener('blur', () => setTimeout(hideAC, 150));
+
+function setStatus(msg, isErr, loading){
+  statusEl.className = 'status' + (isErr ? ' err' : '');
+  statusEl.innerHTML = (loading ? '<span class="spinner" aria-hidden="true"></span>' : '') +
+    '<span>' + (msg ? msg.replace(/</g,'&lt;') : '') + '</span>';
+}
+
+function clearMap(){
+  markers.forEach(m => m.remove());
+  markers = [];
+}
+
+// The Luxe square mark: a bold left slash "/" plus a taller peak "Λ", as on the logo.
+const LUXE_MARK_SVG =
+  '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M9 39 L21 10" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M24 39 L32 10 L41 39" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
+  '</svg>';
+// Mirror the Luxe mark into the map legend, and tailor the "add a sign" hint
+// to the device (touch = long-press, mouse = right-click).
+(function(){
+  const li = document.getElementById('legendHomeIco'); if(li) li.innerHTML = LUXE_MARK_SVG;
+  const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  const hint = document.getElementById('legendAddHint');
+  if(hint) hint.textContent = isTouch
+    ? 'Hold down on the map to add a sign manually'
+    : 'Right-click the map to add a sign manually';
+
+  // Collapsible "Key" on small/touch screens so it never covers the pins.
+  const legend = document.getElementById('legend');
+  const toggle = document.getElementById('legendToggle');
+  const small = window.matchMedia('(max-width:760px)').matches;
+  if(legend && toggle){
+    if(small){ legend.classList.add('collapsed'); toggle.setAttribute('aria-expanded','false'); }
+    toggle.addEventListener('click', () => {
+      const collapsed = legend.classList.toggle('collapsed');
+      toggle.setAttribute('aria-expanded', String(!collapsed));
+    });
+  }
+})();
+
+function addMarker(lng, lat, label, isHome, isFallback, isManual){
+  const el = document.createElement('div');
+  el.className = 'marker' + (isHome ? ' home' : '') + (isFallback ? ' fallback' : '') + (isManual ? ' manual' : '');
+  if(isHome){
+    el.innerHTML = LUXE_MARK_SVG; // listing shown as the Luxe square logo tile
+  } else {
+    el.innerHTML = '<span>' + label + '</span>';
+  }
+  const m = new mapboxgl.Marker(el).setLngLat([lng, lat]).addTo(map);
+  markers.push(m);
+  return m;
+}
+
+/* Haversine distance in metres */
+function dist(a, b){
+  const R = 6371000, toRad = d => d * Math.PI/180;
+  const dLat = toRad(b[1]-a[1]), dLng = toRad(b[0]-a[0]);
+  const s = Math.sin(dLat/2)**2 +
+            Math.cos(toRad(a[1]))*Math.cos(toRad(b[1]))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s));
+}
+
+async function geocode(address, token){
+  const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
+              encodeURIComponent(address) + '.json?limit=1&access_token=' + token;
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('Geocoding failed (' + r.status + '). Check the token & address.');
+  const d = await r.json();
+  if(!d.features || !d.features.length) throw new Error('Address not found. Try adding city & state.');
+  const f = d.features[0];
+  return { center: f.center, full: f.place_name }; // [lng, lat] + complete address
+}
+
+/*
+  Build candidate sign points by sampling approach routes.
+  We pick bearings around the property, project an outer point a
+  short distance away, request a driving route back to the house,
+  and harvest the route's turn maneuvers — those are real
+  intersections/decision points on the road network. We then
+  spread the selection so signs aren't clustered.
+*/
+function projectPoint(origin, bearingDeg, metres){
+  const R = 6371000, toRad = d=>d*Math.PI/180, toDeg = r=>r*180/Math.PI;
+  const br = toRad(bearingDeg), lat1 = toRad(origin[1]), lng1 = toRad(origin[0]);
+  const dr = metres / R;
+  const lat2 = Math.asin(Math.sin(lat1)*Math.cos(dr) + Math.cos(lat1)*Math.sin(dr)*Math.cos(br));
+  const lng2 = lng1 + Math.atan2(Math.sin(br)*Math.sin(dr)*Math.cos(lat1),
+                                 Math.cos(dr)-Math.sin(lat1)*Math.sin(lat2));
+  return [toDeg(lng2), toDeg(lat2)];
+}
+
+async function getRouteSteps(from, to, token){
+  const url = 'https://api.mapbox.com/directions/v5/mapbox/driving/' +
+    from[0]+','+from[1]+';'+to[0]+','+to[1] +
+    '?steps=true&geometries=geojson&overview=full&access_token=' + token;
+  const r = await fetch(url);
+  if(!r.ok) return null;
+  const d = await r.json();
+  if(!d.routes || !d.routes.length) return null;
+  const steps = d.routes[0].legs[0].steps || [];
+  // Each step's maneuver location is a turn/intersection point.
+  return steps
+    .map(s => ({ loc: s.maneuver.location, name: s.name || 'Unnamed road' }))
+    .filter(s => s.loc);
+}
+
+/*
+  Mapbox Optimization API (v1): solves the visiting order for the house +
+  all sign spots (a travelling-salesman style route), starting at the house.
+  Returns the spots reordered for the fastest round/path.
+  Limit is ~12 coordinates per request (verify in current Mapbox docs).
+  If there are more stops than the cap, or the call fails, we fall back to
+  the spots in their existing order so navigation still works.
+*/
+async function optimizeRoute(home, spots, token){
+  const pts = [home, ...spots.map(s=>s.loc)];
+  if(pts.length > 12){
+    // v1 caps at 12 coordinates (house + 11 signs). Optimize the first 11,
+    // then append the remaining signs in nearest-neighbor order so the route
+    // is still sensible. Labelled as partially optimized in the UI.
+    const head = spots.slice(0, 11);
+    const tail = spots.slice(11);
+    const headRes = await optimizeRoute(home, head, token);
+    const orderedHead = headRes.optimized ? headRes.ordered : head.slice();
+    // greedy nearest-neighbor for the overflow, starting from last head stop
+    let cursor = orderedHead.length ? orderedHead[orderedHead.length-1].loc : home;
+    const rest = tail.slice(), orderedTail = [];
+    while(rest.length){
+      let bi = 0, bd = Infinity;
+      rest.forEach((s,i)=>{ const dd = dist(cursor, s.loc); if(dd<bd){bd=dd;bi=i;} });
+      cursor = rest[bi].loc; orderedTail.push(rest.splice(bi,1)[0]);
+    }
+    return { ordered: orderedHead.concat(orderedTail), optimized: headRes.optimized, partial:true };
+  }
+  // radiuses=unlimited lets each point snap to the nearest road instead of
+  // failing the whole request with a NoSegment error (the usual silent cause).
+  // roundtrip=true returns to the listing (source=first) — this matches the
+  // round-trip Google Maps link AND avoids the "NotImplemented" error that
+  // roundtrip=false throws unless BOTH source and destination are specified.
+  const coords = pts.map(p=>p[0]+','+p[1]).join(';');
+  const radiuses = pts.map(()=>'unlimited').join(';');
+  const url = 'https://api.mapbox.com/optimized-trips/v1/mapbox/driving/' +
+    coords + '?source=first&roundtrip=true&radiuses=' + radiuses + '&access_token=' + token;
+  try{
+    const r = await fetch(url);
+    const d = await r.json().catch(()=>null);
+    if(!r.ok || !d){
+      const reason = (d && (d.message || d.code)) ? (d.code||'') + ' ' + (d.message||'') : ('HTTP ' + r.status);
+      return { ordered: spots.slice(), optimized:false, reason: reason.trim() };
+    }
+    if(d.code && d.code !== 'Ok'){
+      return { ordered: spots.slice(), optimized:false, reason: d.code + (d.message? ' — '+d.message : '') };
+    }
+    if(!d.waypoints){
+      return { ordered: spots.slice(), optimized:false, reason:'no waypoints returned' };
+    }
+    const order = d.waypoints
+      .map((w, i) => ({ inputIdx:i, tripIdx:w.waypoint_index }))
+      .filter(w => w.inputIdx !== 0)
+      .sort((a,b) => a.tripIdx - b.tripIdx)
+      .map(w => spots[w.inputIdx - 1]);
+    return { ordered: order, optimized:true };
+  }catch(e){
+    return { ordered: spots.slice(), optimized:false, reason:(e.message||'network error') };
+  }
+}
+
+/*
+  Build a Google Maps directions URL that STARTS and ENDS at the listing
+  (a round trip), with the sign spots as waypoints in between — so the agent
+  drives out from the house, drops every sign, and loops back home.
+  Google's universal URL supports an origin, a destination, and up to ~9
+  waypoints. Here origin = destination = the listing, leaving all 9 waypoint
+  slots for signs. Returns { url, covered } where covered is how many signs
+  the single link includes (any beyond the cap need the tap-through list).
+*/
+function buildGoogleMapsUrl(home, ordered){
+  const MAX_WAYPOINTS = 9; // listing(origin) + 9 sign waypoints + listing(destination)
+  const fmt = p => p[1] + ',' + p[0]; // google wants lat,lng
+  const signs = ordered.slice(0, MAX_WAYPOINTS); // signs we can fit as waypoints
+  const homeStr = fmt(home);
+  const waypoints = signs.map(s => fmt(s.loc)).join('|');
+  let url = 'https://www.google.com/maps/dir/?api=1' +
+            '&origin=' + homeStr +
+            '&destination=' + homeStr + // return to the listing
+            '&travelmode=driving';
+  if(waypoints) url += '&waypoints=' + encodeURIComponent(waypoints);
+  return { url, covered: signs.length };
+}
+
+function singleStopUrl(loc){
+  return 'https://www.google.com/maps/dir/?api=1&destination=' +
+         loc[1] + ',' + loc[0] + '&travelmode=driving';
+}
+
+async function findSpots(home, token, maxDriveMin, wantCount){
+  const bearings = [0,45,90,135,180,225,270,315]; // 8 approach directions
+  // Route from a distant point in each direction back to the house. The
+  // maneuver points along each route trace the real approach roads — including
+  // the freeway/highway exit and the side roads leading from it to the house
+  // (your item #4). Road-class scoring later promotes those main-road points.
+  // We size the ring a bit beyond the drive-time limit (≈900 m/min) so routes
+  // reach nearby highways; the Matrix step then enforces the limit precisely.
+  const outerKm = Math.max(1500, maxDriveMin * 900);
+  const maxStraight = Math.max(2000, maxDriveMin * 1100);
+  const candidates = [];
+
+  for(const b of bearings){
+    const outer = projectPoint(home, b, outerKm);
+    const steps = await getRouteSteps(outer, home, token);
+    if(!steps) continue;
+    steps.forEach(s => {
+      const dHome = dist(s.loc, home);
+      if(dHome < 40) return;           // skip points basically at the door
+      if(dHome > maxStraight) return;  // coarse cap; drive-time filter refines
+      candidates.push({ loc:s.loc, name:s.name, dHome });
+    });
+  }
+
+  if(!candidates.length) return [];
+
+  // De-duplicate points that are within ~60m of each other.
+  let unique = [];
+  candidates.forEach(c => {
+    if(!unique.some(u => dist(u.loc, c.loc) < 60)) unique.push(c);
+  });
+
+  // Annotate driving duration from the house via the Matrix API, then KEEP
+  // ONLY points within the drive-time limit. No over-limit fallback: if the
+  // area can't supply enough in-limit points, we return fewer and say so.
+  unique = await annotateDriveTime(home, unique, token, maxDriveMin);
+  unique = unique.filter(c => c.within);
+  if(!unique.length) return [];
+
+  // Road-hierarchy scoring: query the Mapbox Streets road layer at each
+  // candidate and read its `class` (motorway, trunk, primary, secondary,
+  // tertiary, residential…). Higher-class roads = more visibility, so they
+  // score higher. This is real road-classification data, NOT traffic volume.
+  await annotateRoadClass(unique, token);
+
+  // Greedy selection that balances three things:
+  //   - spread (signs cover the area, not clustered)
+  //   - road importance (prefer main roads / big intersections)
+  //   - mild closeness to the house (relevant decision points)
+  const chosen = [];
+  // Seed with the highest-importance point closest to the house.
+  unique.sort((a,b) => (b.roadScore - a.roadScore) || (a.dHome - b.dHome));
+  chosen.push(unique.shift());
+
+  while(chosen.length < wantCount && unique.length){
+    let best = -1, bestScore = -Infinity;
+    unique.forEach((c,i)=>{
+      const minToChosen = Math.min(...chosen.map(ch => dist(ch.loc, c.loc)));
+      // weighted: spread (m) + road importance (scaled) − distance penalty
+      const score = minToChosen + (c.roadScore * 220) - (c.dHome * 0.15);
+      if(score > bestScore){ bestScore = score; best = i; }
+    });
+    chosen.push(unique.splice(best,1)[0]);
+  }
+
+  return chosen;
+}
+
+/*
+  Mapbox Tilequery on mapbox-streets-v8 `road` layer returns nearby road
+  segments with a `class` field. We map class -> an importance score so the
+  selector can prefer main roads, highway approaches, and big intersections.
+  Verified against Mapbox Streets v8 docs (class is the road styling field).
+  One Tilequery call per candidate; rate limit is 600/min, ample here.
+*/
+const ROAD_SCORE = {
+  motorway:1.0, trunk:0.95, primary:0.85, motorway_link:0.8, trunk_link:0.78,
+  primary_link:0.7, secondary:0.65, secondary_link:0.55, tertiary:0.45,
+  tertiary_link:0.4, street:0.25, residential:0.2, service:0.1, track:0.05
+};
+async function annotateRoadClass(cands, token){
+  for(const c of cands){
+    c.roadScore = 0.2;       // default if lookup fails
+    c.roadClass = null;
+    try{
+      const url = 'https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/' +
+        c.loc[0] + ',' + c.loc[1] + '.json?radius=25&layers=road&limit=8&access_token=' + token;
+      const r = await fetch(url);
+      if(!r.ok) continue;
+      const d = await r.json();
+      const feats = (d.features || [])
+        .map(f => f.properties && f.properties.class)
+        .filter(Boolean);
+      if(!feats.length) continue;
+      // take the highest-scoring road class found at this point
+      let bestCls = null, bestVal = 0;
+      feats.forEach(cls => {
+        const v = ROAD_SCORE[cls] != null ? ROAD_SCORE[cls] : 0.15;
+        if(v > bestVal){ bestVal = v; bestCls = cls; }
+      });
+      c.roadScore = bestVal || 0.2;
+      c.roadClass = bestCls;
+    }catch(e){ /* keep default */ }
+  }
+}
+
+/*
+  Mapbox Matrix API: source = house (index 0), destinations = candidates.
+  Returns driving durations (seconds). Batched to <=24 candidates per call
+  so total coords (1 source + 24) stays within the documented 25-coord cap.
+  Annotates each candidate with .driveMin and .within (<= maxDriveMin).
+  Candidates with no route returned are dropped (not reachable).
+*/
+async function annotateDriveTime(home, cands, token, maxDriveMin){
+  const kept = [];
+  const batchSize = 24;
+  for(let i=0; i<cands.length; i+=batchSize){
+    const batch = cands.slice(i, i+batchSize);
+    const coords = [home, ...batch.map(c=>c.loc)]
+      .map(p => p[0]+','+p[1]).join(';');
+    const destIdx = batch.map((_,k)=>k+1).join(';');
+    const url = 'https://api.mapbox.com/directions-matrix/v1/mapbox/driving/' +
+      coords + '?sources=0&destinations=' + destIdx +
+      '&annotations=duration&access_token=' + token;
+    try{
+      const r = await fetch(url);
+      if(!r.ok) continue;
+      const d = await r.json();
+      const durs = d.durations && d.durations[0]; // seconds from source to each dest
+      if(!durs) continue;
+      batch.forEach((c, k) => {
+        const sec = durs[k];
+        if(sec != null){
+          c.driveMin = sec/60;
+          c.within = (sec/60) <= maxDriveMin;
+          kept.push(c);
+        }
+      });
+    }catch(e){ /* skip failed batch */ }
+  }
+  return kept;
+}
+
+function renderNav(home, ordered, optimized, reason, partial){
+  const navEl = $('nav');
+  if(!ordered.length){ navEl.innerHTML = ''; return; }
+
+  const { url, covered } = buildGoogleMapsUrl(home, ordered);
+  const overflow = ordered.slice(covered);
+
+  let statusLine;
+  if(optimized && partial){
+    statusLine = 'First 11 stops optimized for fastest route; any beyond that ordered by nearest-next.';
+  } else if(optimized){
+    statusLine = 'Stops are ordered for the fastest route from the listing.';
+  } else {
+    statusLine = 'Could not optimize the order' +
+      (reason ? ' (' + reason + ')' : '') +
+      ' — stops are in placement order. Driving them in this order still works.';
+  }
+
+  let html = '<h2>Navigate</h2>';
+  html += '<p class="navnote' + (optimized ? '' : ' warn') + '">' + statusLine + '</p>';
+
+  html += '<a class="navbtn" href="' + url + '" target="_blank" rel="noopener">' +
+          'Open round-trip route in Google Maps (' + covered + ' sign' + (covered>1?'s':'') + ', returns to listing)</a>';
+
+  if(overflow.length){
+    html += '<p class="navnote warn">Google Maps fits ~9 signs per link. The ' +
+            overflow.length + ' remaining stop' + (overflow.length>1?'s':'') +
+            ' are below — tap each as you reach it:</p><ol class="overflow">';
+    overflow.forEach((s, i) => {
+      html += '<li><a href="' + singleStopUrl(s.loc) + '" target="_blank" rel="noopener">Stop ' +
+              (covered + i + 1) + ' — ' + s.name + '</a></li>';
+    });
+    html += '</ol>';
+  }
+  navEl.innerHTML = html;
+}
+
+
+// Redraw all markers + the result list + nav from current state. Called after
+// a search and again whenever a sign is manually added/removed.
+function renderResults(fit){
+  if(!curHome) return;
+  clearMap();
+  addMarker(curHome[0], curHome[1], '⌂', true); // the listing (Luxe mark)
+
+  const bounds = new mapboxgl.LngLatBounds();
+  bounds.extend(curHome);
+
+  const niceClass = c => c ? c.replace(/_/g,' ') : 'road';
+  const n = curOrdered.length;
+  let html = '<h2>' + n + (n===1?' sign spot':' sign spots') +
+             (curMeta.optimized ? ' — driving order' : ' — listed order') + '</h2>';
+  curOrdered.forEach((s, i) => {
+    const num = i+1;
+    addMarker(s.loc[0], s.loc[1], num, false, false, !!s.manual);
+    bounds.extend(s.loc);
+    const dm = s.driveMin != null ? (Math.round(s.driveMin*10)/10) + ' min'
+             : (s.dHome != null ? (Math.round(s.dHome) + ' m') : 'manual');
+    const cls = s.manual ? 'manual placement' : niceClass(s.roadClass);
+    html += '<div class="spot" data-i="'+i+'" data-lng="'+s.loc[0]+'" data-lat="'+s.loc[1]+'">' +
+              '<div class="num">'+num+'</div>' +
+              '<div class="meta"><span class="road">'+s.name+'</span><br>' +
+              '<span class="why">'+cls+' • '+dm+' from listing</span></div>' +
+              '<button class="rm" data-i="'+i+'" title="Remove this sign" aria-label="Remove sign '+num+'">&times;</button>' +
+            '</div>';
+  });
+  $('results').innerHTML = html;
+  renderNav(curHome, curOrdered, curMeta.optimized, curMeta.reason, curMeta.partial);
+
+  // click a result row to fly to it
+  document.querySelectorAll('.spot').forEach(el => {
+    el.addEventListener('click', e => {
+      if(e.target.classList.contains('rm')) return; // let remove handle itself
+      map.flyTo({ center:[+el.dataset.lng, +el.dataset.lat], zoom:16 });
+    });
+  });
+  // remove a sign
+  document.querySelectorAll('.spot .rm').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      curOrdered.splice(parseInt(btn.dataset.i,10), 1);
+      renderResults(false);
+    });
+  });
+
+  if(fit && (n > 0)) map.fitBounds(bounds, { padding:70, maxZoom:15 });
+}
+
+// Add a sign manually at a clicked/long-pressed map location.
+async function addManualSign(lng, lat){
+  if(!curHome){
+    setStatus('Find sign spots for a listing first, then add your own.', true);
+    return;
+  }
+  const loc = [lng, lat];
+  // Look up the street name + drive time so the manual sign reads like the rest.
+  let name = 'Custom location', driveMin = null;
+  try{
+    const rev = await fetch('https://api.mapbox.com/geocoding/v5/mapbox.places/' +
+      lng + ',' + lat + '.json?types=address&limit=1&access_token=' + MAPBOX_TOKEN);
+    if(rev.ok){ const d = await rev.json(); if(d.features && d.features[0]) name = d.features[0].text || d.features[0].place_name || name; }
+  }catch(e){ /* keep default name */ }
+  try{
+    const annotated = await annotateDriveTime(curHome, [{loc, name}], MAPBOX_TOKEN, 9999);
+    if(annotated[0] && annotated[0].driveMin != null) driveMin = annotated[0].driveMin;
+  }catch(e){ /* drive time optional */ }
+  curOrdered.push({ loc, name, driveMin, dHome: dist(curHome, loc), roadClass:null, manual:true });
+  renderResults(false);
+  setStatus('Added a manual sign on ' + name + '. It’s included in the route below.');
+}
+
+// Desktop: right-click the map. Mobile: long-press (~550ms hold).
+function wireManualPlacement(){
+  if(!map || map.__manualWired) return;
+  map.__manualWired = true;
+  map.on('contextmenu', e => { addManualSign(e.lngLat.lng, e.lngLat.lat); });
+  let pressTimer = null, startPt = null;
+  const clear = () => { if(pressTimer){ clearTimeout(pressTimer); pressTimer = null; } };
+  map.on('touchstart', e => {
+    if(e.points.length !== 1) return; // ignore pinch/multi-touch
+    startPt = e.point;
+    pressTimer = setTimeout(() => {
+      pressTimer = null;
+      addManualSign(e.lngLat.lng, e.lngLat.lat);
+    }, 550);
+  });
+  map.on('touchmove', e => {
+    // cancel if the finger moves (that's a pan, not a long-press)
+    if(startPt && e.point && (Math.abs(e.point.x-startPt.x) > 10 || Math.abs(e.point.y-startPt.y) > 10)) clear();
+  });
+  map.on('touchend', clear);
+  map.on('touchcancel', clear);
+}
+
+$('go').addEventListener('click', async () => {
+  const address = $('addr').value.trim();
+  const token = MAPBOX_TOKEN;
+  setStatus('');
+  $('results').innerHTML = '';
+  $('nav').innerHTML = '';
+
+  if(!TOKEN_OK){ setStatus('This tool isn’t configured yet — the Mapbox token is missing. Contact your admin.', true); return; }
+  if(!address){ setStatus('Enter the listing address first.', true); return; }
+
+  $('go').disabled = true;
+  setStatus('Step 1 of 3 — locating address…', false, true);
+
+  try{
+    if(!ensureMap(token)){
+      setStatus('Map could not start — check your token.', true);
+      $('go').disabled = false; return;
+    }
+    // Use the autocomplete-picked coordinate if available; otherwise geocode.
+    let home;
+    if(selectedCoord){
+      home = selectedCoord; // field already holds the full picked address
+    } else {
+      const g = await geocode(address, token);
+      home = g.center;
+      if(g.full) $('addr').value = g.full; // show the complete, resolved address
+    }
+
+    // Make sure the map style has loaded before adding markers.
+    if(!map.isStyleLoaded()){
+      await new Promise(res => { map.once('load', res); setTimeout(res, 4000); });
+    }
+    map.setCenter(home); map.setZoom(14);
+
+    clearMap();
+    addMarker(home[0], home[1], '\u2302', true); // house symbol
+
+    setStatus('Step 2 of 3 — analyzing approach roads, drive times & road visibility…', false, true);
+    const maxDriveMin = parseInt($('drive').value, 10);
+    const wantCount = parseInt($('count').value, 10);
+    const spots = await findSpots(home, token, maxDriveMin, wantCount);
+
+    if(!spots.length){
+      setStatus('No sign spots found within ' + maxDriveMin + ' min drive. Try increasing the limit or a more complete address.', true);
+      $('go').disabled = false; return;
+    }
+
+    setStatus('Step 3 of 3 — optimizing the driving order…', false, true);
+    const { ordered, optimized, reason, partial } = await optimizeRoute(home, spots, token);
+    lastHome = home;
+    lastOrdered = ordered;
+    curHome = home;
+    curOrdered = ordered.slice();
+    curMeta = { optimized, reason, partial };
+
+    renderResults(true);
+
+    const fewer = ordered.length < wantCount;
+    saveSession();
+    setStatus('Done — ' + ordered.length + ' spots found within ' + maxDriveMin + ' min.' +
+      (fewer ? ' Not enough road points within your timeframe. Increase your drive time for more spots.' : ''));
+  }catch(err){
+    setStatus(err.message || 'Something went wrong.', true);
+  }finally{
+    $('go').disabled = false;
+  }
+});
+</script>
+
+<!-- This is the gated app. The guard requires an active subscription;
+     anyone not signed in / not subscribed is sent back to the landing page. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app-guard.js"></script>
+</body>
+</html>
