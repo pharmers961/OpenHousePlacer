@@ -1,11 +1,11 @@
-// Shared helpers for the serverless API routes.
-// Files in /api starting with "_" are NOT exposed as routes by Vercel.
+// Shared helpers for the Netlify Functions (Stripe + Supabase).
+// This lives in a subfolder so Netlify does NOT treat it as its own endpoint.
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Admin client: bypasses Row Level Security. Use ONLY on the server.
+// Admin client: bypasses Row Level Security. Server-only.
 export function adminDb() {
   return createClient(
     process.env.SUPABASE_URL,
@@ -14,21 +14,17 @@ export function adminDb() {
   );
 }
 
-// Verify the caller's Supabase access token (sent as "Authorization: Bearer ...")
-// and return the authenticated user, or null.
+// Verify the caller's Supabase access token ("Authorization: Bearer ...").
 export async function getUser(req) {
-  const auth = req.headers.authorization || '';
+  const auth = req.headers.get('authorization') || '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
   if (!token) return null;
-  const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false },
-  });
-  const { data, error } = await db.auth.getUser(token);
+  const { data, error } = await adminDb().auth.getUser(token);
   if (error || !data?.user) return null;
   return data.user;
 }
 
-// Find or create the Stripe customer for a profile, caching the id back to the DB.
+// Find or create the Stripe customer for a profile, caching the id in the DB.
 export async function ensureStripeCustomer(db, profile, user) {
   if (profile?.stripe_customer_id) return profile.stripe_customer_id;
   const customer = await stripe.customers.create({
@@ -39,8 +35,15 @@ export async function ensureStripeCustomer(db, profile, user) {
   return customer.id;
 }
 
-export function readJson(req) {
-  // Vercel parses JSON bodies by default; fall back to manual parse just in case.
-  if (req.body && typeof req.body === 'object') return req.body;
-  try { return JSON.parse(req.body || '{}'); } catch { return {}; }
+// Build the public site URL for Checkout redirects.
+export function appUrl(req) {
+  return process.env.APP_URL || new URL(req.url).origin;
+}
+
+// JSON response helper.
+export function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
 }

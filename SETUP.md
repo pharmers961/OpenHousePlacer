@@ -23,7 +23,7 @@ Stripe → (webhook) → our backend → updates the database → unlocks the ag
 
 - **Stripe** collects money & handles renewals.
 - **Supabase** stores accounts + who has paid (the database & login).
-- **Vercel** hosts the site and the small backend (`/api` functions).
+- **Netlify** hosts the site and the small backend (`/api` functions).
 
 ---
 
@@ -62,16 +62,19 @@ Stripe → (webhook) → our backend → updates the database → unlocks the ag
 
 ---
 
-## Step 3 — Deploy to Vercel
+## Step 3 — Deploy to Netlify
 
 1. Push this branch to GitHub (already done if you're reading this there).
-2. Go to <https://vercel.com> → sign in with GitHub → **Add New… → Project** →
-   import this repository.
-3. Framework preset: **Other** (it's a static site + `/api` functions). Click
-   **Deploy**. Wait for the first deploy to finish — note the URL it gives you
-   (e.g. `https://signdeployer.vercel.app`).
-4. In the Vercel project → **Settings → Environment Variables**. Add each of
-   these (from Steps 1–2). Use the names exactly:
+2. Go to <https://app.netlify.com> → sign in with GitHub → **Add new site →
+   Import an existing project** → pick GitHub → choose this repository.
+3. **Branch to deploy:** select `claude/loving-johnson-iCjEv` (where this work
+   lives). Leave **Build command** empty and **Publish directory** as `.`
+   (the included `netlify.toml` already sets the functions folder). Click
+   **Deploy site**. When it finishes, note the URL (e.g.
+   `https://something.netlify.app`).
+4. In the Netlify site → **Site configuration → Environment variables** →
+   **Add a variable** (use "Add a single variable" for each). Use the names
+   exactly:
 
    | Name | Value |
    |------|-------|
@@ -79,11 +82,12 @@ Stripe → (webhook) → our backend → updates the database → unlocks the ag
    | `AGENT_PRICE_ID` | `price_...` (Agent) |
    | `ENTERPRISE_PRICE_ID` | `price_...` (Enterprise) |
    | `SUPABASE_URL` | your Project URL |
-   | `SUPABASE_SERVICE_ROLE_KEY` | the service_role key |
-   | `APP_URL` | your Vercel URL |
+   | `SUPABASE_SERVICE_ROLE_KEY` | the **secret** key (`sb_secret_...`) |
+   | `APP_URL` | your Netlify URL |
    | `STRIPE_WEBHOOK_SECRET` | *fill in Step 4* |
 
-   Then **Redeploy** (Deployments → ⋯ → Redeploy) so the variables take effect.
+   Then trigger a redeploy (**Deploys → Trigger deploy → Deploy site**) so the
+   variables take effect.
 
 ---
 
@@ -92,14 +96,14 @@ Stripe → (webhook) → our backend → updates the database → unlocks the ag
 The webhook is how Stripe tells us "this person paid" so we can unlock them.
 
 1. Stripe → **Developers → Webhooks → Add endpoint**.
-2. **Endpoint URL:** `https://YOUR-VERCEL-URL/api/stripe-webhook`
+2. **Endpoint URL:** `https://YOUR-NETLIFY-URL/api/stripe-webhook`
 3. **Events to send** — add these:
    - `checkout.session.completed`
    - `customer.subscription.created`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
 4. Save, then open the endpoint and copy its **Signing secret** (`whsec_...`).
-5. Back in Vercel, set `STRIPE_WEBHOOK_SECRET` to that value and **Redeploy**.
+5. Back in Netlify, set `STRIPE_WEBHOOK_SECRET` to that value and **Redeploy**.
 
 ---
 
@@ -109,10 +113,10 @@ The webhook is how Stripe tells us "this person paid" so we can unlock them.
    - `SUPABASE_URL` → your Project URL
    - `SUPABASE_ANON_KEY` → the **anon public** key (safe to commit)
    - Optionally update `ENTERPRISE_PRICE_LABEL` to match your real price.
-2. Commit & push. Vercel redeploys automatically. The paywall is now live.
+2. Commit & push. Netlify redeploys automatically. The paywall is now live.
 
 > These two values are *public by design* (anon key + price labels). The
-> service-role and Stripe secret keys stay in Vercel env vars only.
+> service-role and Stripe secret keys stay in Netlify env vars only.
 
 ---
 
@@ -133,7 +137,7 @@ The webhook is how Stripe tells us "this person paid" so we can unlock them.
    should show that company's branding.
 
 When everything works, switch Stripe to **Live mode**, recreate the two products
-with live prices, swap the Vercel env vars to the **live** keys (`sk_live_...`,
+with live prices, swap the Netlify env vars to the **live** keys (`sk_live_...`,
 new webhook secret, live price IDs), and redeploy.
 
 ---
@@ -166,7 +170,7 @@ paid session. That's a follow-up phase — not needed to launch.
 | Secret | Lives in | Public? |
 |--------|----------|---------|
 | Supabase anon key | `assets/js/config.js` | ✅ yes |
-| Supabase service_role key | Vercel env var | ❌ never |
-| Stripe secret key | Vercel env var | ❌ never |
-| Stripe webhook secret | Vercel env var | ❌ never |
-| Stripe price IDs | Vercel env vars | ❌ keep server-side |
+| Supabase service_role key | Netlify env var | ❌ never |
+| Stripe secret key | Netlify env var | ❌ never |
+| Stripe webhook secret | Netlify env var | ❌ never |
+| Stripe price IDs | Netlify env vars | ❌ keep server-side |

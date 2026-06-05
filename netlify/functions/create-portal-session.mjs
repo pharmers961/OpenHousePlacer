@@ -1,12 +1,12 @@
 // POST /api/create-portal-session
 // Returns: { url } — Stripe's self-serve billing portal (cancel, update card, invoices).
-import { stripe, adminDb, getUser } from './_lib.js';
+import { stripe, adminDb, getUser, appUrl, json } from './lib/helpers.mjs';
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+export default async (req) => {
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
   const user = await getUser(req);
-  if (!user) return res.status(401).json({ error: 'Not signed in' });
+  if (!user) return json({ error: 'Not signed in' }, 401);
 
   const db = adminDb();
   const { data: profile } = await db
@@ -25,13 +25,14 @@ export default async function handler(req, res) {
       .single();
     customerId = company?.stripe_customer_id;
   }
-  if (!customerId) return res.status(400).json({ error: 'No billing account yet' });
+  if (!customerId) return json({ error: 'No billing account yet' }, 400);
 
-  const appUrl = process.env.APP_URL || `https://${req.headers.host}`;
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
-    return_url: appUrl,
+    return_url: appUrl(req),
   });
 
-  return res.status(200).json({ url: session.url });
-}
+  return json({ url: session.url });
+};
+
+export const config = { path: '/api/create-portal-session' };

@@ -5,8 +5,8 @@
   "type": "module",
   "description": "SignDeployer — open house sign placement, with paid agent & enterprise plans.",
   "scripts": {
-    "dev": "vercel dev",
-    "deploy": "vercel --prod"
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
