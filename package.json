@@ -1,0 +1,15 @@
+{
+  "name": "signdeployer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SignDeployer — open house sign placement, with paid agent & enterprise plans.",
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "stripe": "^16.8.0"
+  }
+}

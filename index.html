@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>SignScout — Open House Sign Placement | Luxe Realty Group</title>
+<title>SignDeployer — Open House Sign Placement | Luxe Realty Group</title>
 
 <!-- Mapbox GL JS. Verify the latest version against current Mapbox docs before relying on it. -->
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css" rel="stylesheet" />
@@ -85,7 +85,7 @@
     max-height:20px; opacity:1;
     transition:max-height .25s ease, opacity .2s ease, margin .25s ease;
   }
-  /* When scrolled: logo shrinks and moves to the LEFT of the SignScout name */
+  /* When scrolled: logo shrinks and moves to the LEFT of the SignDeployer name */
   .brand.scrolled{
     flex-direction:row;
     gap:12px;
@@ -369,7 +369,7 @@
 <aside class="panel">
   <div class="brand">
     <img class="logo" id="brandLogo" alt="Luxe Realty Group" />
-    <h1 class="appname">SignScout</h1>
+    <h1 class="appname">SignDeployer</h1>
     <p>Open House Sign Placement</p>
   </div>
 
@@ -398,7 +398,7 @@
       <button type="button" id="infoBtn" class="info-btn" aria-expanded="false" aria-controls="howMore" title="How spots are chosen">i</button>
     </div>
     <div class="disclaimer" id="howMore" hidden>
-      <b>How spots are chosen:</b> SignScout ranks corners by road size and the actual driving routes people take to reach the
+      <b>How spots are chosen:</b> SignDeployer ranks corners by road size and the actual driving routes people take to reach the
       listing — so your signs land where buyers will see them.
       <span class="extra">It scores candidate points using road classification (highway → residential) and approach routes, not
       measured traffic counts — so treat it as a strong starting point and adjust with your local knowledge.</span>
@@ -427,7 +427,7 @@
 
 <script>
 /* ============================================================
-   SignScout
+   SignDeployer
    ------------------------------------------------------------
    IMPORTANT HONESTY NOTE (read before trusting output):
    This tool does NOT use real traffic-volume data. It uses the
@@ -522,7 +522,7 @@ $('count').addEventListener('input', e => {
 // doesn't wipe their work.
 (function restoreSession(){
   try{
-    const s = JSON.parse(localStorage.getItem('signscout') || '{}');
+    const s = JSON.parse(localStorage.getItem('signdeployer') || '{}');
     if(s.addr){ $('addr').value = s.addr; }
     if(s.count){ $('count').value = s.count; $('countVal').textContent = s.count; $('goCount').textContent = s.count; }
     if(s.drive){ $('drive').value = s.drive; $('driveVal').textContent = s.drive; }
@@ -530,7 +530,7 @@ $('count').addEventListener('input', e => {
 })();
 function saveSession(){
   try{
-    localStorage.setItem('signscout', JSON.stringify({
+    localStorage.setItem('signdeployer', JSON.stringify({
       addr: $('addr').value.trim(),
       count: $('count').value,
       drive: $('drive').value
@@ -1163,5 +1163,11 @@ $('go').addEventListener('click', async () => {
   }
 });
 </script>
+
+<!-- Accounts, paywall & Enterprise branding.
+     Inactive until assets/js/config.js holds real Supabase values. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/auth.js"></script>
 </body>
 </html>

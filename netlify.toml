@@ -1,0 +1,11 @@
+# Netlify configuration for SignDeployer
+# Static site at the repo root + serverless functions in netlify/functions.
+# Each function declares its own route via `export const config = { path }`,
+# e.g. /api/create-checkout-session, so no redirects are needed.
+
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
