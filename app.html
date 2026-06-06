@@ -148,6 +148,23 @@
   }
   .key-note a{ color:var(--ink); font-weight:600; }
 
+  /* ---- Saved addresses ---- */
+  #savedWrap{ margin-top:12px; overflow:hidden; }
+  .saved-btn{ background:none; border:none; color:var(--ink); font:inherit; font-weight:600;
+    font-size:12px; cursor:pointer; text-decoration:underline; padding:0; }
+  .saved-btn:hover{ opacity:.75; }
+  .saved-list{ margin-top:10px; clear:both; }
+  .saved-list.collapsed{ display:none; }
+  .saved-row{ display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--line); }
+  .saved-row:last-child{ border-bottom:none; }
+  .saved-row .addr{ flex:1; font-size:12.5px; line-height:1.35; cursor:pointer; color:var(--ink);
+    overflow-wrap:anywhere; }
+  .saved-row .addr:hover{ text-decoration:underline; }
+  .saved-row .del{ flex:0 0 22px; width:22px; height:22px; border:none; background:none; cursor:pointer;
+    color:var(--muted); font-size:18px; line-height:1; border-radius:50%; transition:.12s; }
+  .saved-row .del:hover{ background:#f0d6d9; color:#b00020; }
+  .saved-empty{ font-size:12px; color:var(--muted); }
+
   button.go{
     margin-top:24px;
     width:100%;
@@ -395,6 +412,13 @@
     </div>
     <div class="key-note" id="addrHint"></div>
 
+    <!-- Saved addresses (full app only; hidden in the public demo) -->
+    <div id="savedWrap" hidden>
+      <button type="button" id="saveAddrBtn" class="saved-btn">☆ Save this address</button>
+      <button type="button" id="savedToggle" class="saved-btn" aria-expanded="true" style="float:right">Saved <span id="savedCount">(0)</span></button>
+      <div id="savedList" class="saved-list"></div>
+    </div>
+
     <div class="gap"></div>
 
     <label class="fld" for="count">Number of signs — <span id="countVal">10</span></label>
@@ -571,13 +595,17 @@ function saveSession(){
 // Bring the map up immediately on load so the agent never sees a blank screen.
 ensureMap();
 
-// ---- DEMO MODE (public "Try the app") -------------------------------------
-// Opened from the home page via app.html?demo=1. The listing is LOCKED to a
-// sample address (the White House): the address field is read-only and the
-// search ALWAYS uses the fixed coordinate — so it can't be changed even by
-// re-enabling the input in dev tools. Sign count & drive time stay adjustable.
-const DEMO = (new URLSearchParams(location.search).get('demo') === '1') ||
-             (function(){ try { return sessionStorage.getItem('sd_demo') === '1'; } catch(e){ return false; } })();
+// ---- DEMO vs ADMIN ---------------------------------------------------------
+// DEMO (public "Try the app", ?demo=1) locks the listing to the White House.
+// ADMIN (entered the access code, or ?admin=...) is the FULL app: the address
+// is fully editable. Admin always wins over a leftover demo flag, and we clear
+// that flag so a prior demo visit can never lock the admin session.
+const _q = new URLSearchParams(location.search);
+const ADMIN = (_q.get('admin') != null) ||
+              (function(){ try { return localStorage.getItem('sd_admin') === 'ok'; } catch(e){ return false; } })();
+if(ADMIN){ try { sessionStorage.removeItem('sd_demo'); } catch(e){} }
+const DEMO = !ADMIN && ( _q.get('demo') === '1' ||
+             (function(){ try { return sessionStorage.getItem('sd_demo') === '1'; } catch(e){ return false; } })() );
 const DEMO_ADDR  = '1600 Pennsylvania Avenue NW, Washington, DC 20500';
 const DEMO_COORD = [-77.0365, 38.8977]; // [lng, lat]
 if(DEMO){
@@ -597,6 +625,57 @@ if(DEMO){
     if(map.isStyleLoaded()) showHome(); else map.once('load', showHome);
   }
 }
+
+// ---- Saved addresses (full app only; hidden in the public demo) -------------
+// Lets a logged-in user keep a personal list of listings and reopen them later.
+const SAVED_KEY = 'signdeployer_addresses';
+function loadSavedAddrs(){ try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); } catch(e){ return []; } }
+function persistSavedAddrs(list){ try { localStorage.setItem(SAVED_KEY, JSON.stringify(list.slice(0,50))); } catch(e){} }
+function renderSavedAddrs(){
+  const wrap = $('savedWrap'); if(!wrap) return;
+  if(DEMO){ wrap.hidden = true; return; }
+  wrap.hidden = false;
+  const list = loadSavedAddrs();
+  const cnt = $('savedCount'); if(cnt) cnt.textContent = '(' + list.length + ')';
+  const el = $('savedList');
+  if(!list.length){ el.innerHTML = '<div class="saved-empty">No saved addresses yet. Search an address, then “Save this address”.</div>'; return; }
+  el.innerHTML = list.map((s,i) =>
+    '<div class="saved-row">' +
+      '<span class="addr" data-i="'+i+'" title="Open this address">' + acEsc(s.address) + '</span>' +
+      '<button class="del" data-i="'+i+'" title="Delete" aria-label="Delete saved address">&times;</button>' +
+    '</div>'
+  ).join('');
+  el.querySelectorAll('.addr').forEach(a => a.addEventListener('click', () => openSavedAddr(+a.dataset.i)));
+  el.querySelectorAll('.del').forEach(b => b.addEventListener('click', () => {
+    const l = loadSavedAddrs(); l.splice(+b.dataset.i, 1); persistSavedAddrs(l); renderSavedAddrs();
+  }));
+}
+function saveCurrentAddr(){
+  if(DEMO) return;
+  const address = $('addr').value.trim();
+  if(!address){ setStatus('Search or enter an address first, then save it.', true); return; }
+  const center = (selectedCoord && selectedCoord.slice()) || (curHome && curHome.slice()) || null;
+  let list = loadSavedAddrs().filter(s => (s.address||'').toLowerCase() !== address.toLowerCase());
+  list.unshift({ address, center });
+  persistSavedAddrs(list);
+  renderSavedAddrs();
+  setStatus('Saved “' + address + '”.');
+}
+function openSavedAddr(i){
+  const s = loadSavedAddrs()[i]; if(!s) return;
+  $('addr').value = s.address;
+  selectedCoord = (s.center && s.center.slice()) || null; // if no coord, Find will geocode the text
+  $('go').click();
+}
+(function(){
+  const b = $('saveAddrBtn'); if(b) b.addEventListener('click', saveCurrentAddr);
+  const t = $('savedToggle');
+  if(t) t.addEventListener('click', () => {
+    const collapsed = $('savedList').classList.toggle('collapsed');
+    t.setAttribute('aria-expanded', String(!collapsed));
+  });
+  renderSavedAddrs();
+})();
 
 // ---- Address autocomplete (Nominatim / OpenStreetMap) ----
 // Debounced + cached to respect the public server's ~1 request/second policy.
