@@ -75,9 +75,12 @@ drop policy if exists "own profile - update" on public.profiles;
 create policy "own profile - read"
   on public.profiles for select
   using (auth.uid() = id);
-create policy "own profile - update"
-  on public.profiles for update
-  using (auth.uid() = id);
+-- SECURITY: there is intentionally NO client UPDATE policy on profiles.
+-- subscription_status, plan, company_id and company_role are written ONLY by the
+-- server (Stripe webhook and /api/team) using the service-role key, which
+-- bypasses RLS. If clients could update their own row they could self-grant
+-- subscription_status='active' (free access) or company_role='owner'
+-- (take over a brokerage). Keep profile edits server-side.
 
 drop policy if exists "member can read company" on public.companies;
 create policy "member can read company"
@@ -160,12 +163,25 @@ create policy "branding public read"
   on storage.objects for select
   using (bucket_id = 'branding');
 
+-- Uploads/updates are scoped to the uploader's OWN company folder
+-- (logos are stored at "<company_id>/..."), so a user can't overwrite or
+-- replace another brokerage's logo.
 drop policy if exists "branding authenticated upload" on storage.objects;
 create policy "branding authenticated upload"
   on storage.objects for insert to authenticated
-  with check (bucket_id = 'branding');
+  with check (
+    bucket_id = 'branding'
+    and (storage.foldername(name))[1] = (
+      select company_id::text from public.profiles where id = auth.uid()
+    )
+  );
 
 drop policy if exists "branding authenticated update" on storage.objects;
 create policy "branding authenticated update"
   on storage.objects for update to authenticated
-  using (bucket_id = 'branding');
+  using (
+    bucket_id = 'branding'
+    and (storage.foldername(name))[1] = (
+      select company_id::text from public.profiles where id = auth.uid()
+    )
+  );
