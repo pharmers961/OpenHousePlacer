@@ -58,9 +58,10 @@ async function applySubscription(db, sub) {
   const userId = meta.supabase_user_id;
   const plan = meta.plan || 'agent';
   const status = sub.status; // active | trialing | past_due | canceled | ...
-  const periodEnd = sub.current_period_end
-    ? new Date(sub.current_period_end * 1000).toISOString()
-    : null;
+  // current_period_end lives on the subscription in older Stripe API versions
+  // and on the subscription ITEM in newer ones — read whichever is present.
+  const rawEnd = sub.current_period_end || sub.items?.data?.[0]?.current_period_end || null;
+  const periodEnd = rawEnd ? new Date(rawEnd * 1000).toISOString() : null;
 
   // Brokerage and Enterprise are company plans (seats + branding).
   if (plan === 'brokerage' || plan === 'enterprise') {

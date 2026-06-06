@@ -154,7 +154,12 @@
     const [cls, text] = map[status] || ['off', status];
     $('acStatus').innerHTML = `<span class="pill ${cls}">${esc(text)}</span>`;
     const periodEnd = company?.current_period_end || profile?.current_period_end;
-    if(periodEnd){ $('renewRow').hidden = false; $('acRenew').textContent = new Date(periodEnd).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); }
+    const endDate = periodEnd ? new Date(periodEnd) : null;
+    if(endDate && !isNaN(endDate)){
+      $('renewRow').querySelector('.k').textContent = (status === 'canceled') ? 'Access ends' : 'Renews on';
+      $('acRenew').textContent = endDate.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+      $('renewRow').hidden = false;
+    }
     $('openApp').style.display = active ? '' : 'none';
 
     $('gate').hidden = true; $('main').hidden = false;
