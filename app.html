@@ -126,16 +126,19 @@
   .ac-list{
     position:absolute; top:100%; left:0; right:0; z-index:20;
     background:#fff; border:1.5px solid var(--ink); border-top:none;
-    max-height:240px; overflow-y:auto;
+    max-height:300px; overflow-y:auto; overflow-x:hidden;
     box-shadow:0 10px 24px rgba(0,0,0,0.14);
   }
   .ac-item{
     padding:11px 14px; font-size:14px; cursor:pointer;
-    border-bottom:1px solid var(--line); line-height:1.3;
+    border-bottom:1px solid var(--line); line-height:1.35;
+    white-space:normal; overflow-wrap:anywhere; word-break:break-word;
   }
   .ac-item:last-child{ border-bottom:none; }
   .ac-item:hover, .ac-item.active{ background:var(--soft); }
-  .ac-item .sub{ display:block; font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .ac-item .main{ display:block; font-weight:600; }
+  .ac-item .sub{ display:block; font-size:11.5px; color:var(--muted); margin-top:2px;
+    white-space:normal; overflow-wrap:anywhere; }
 
   .key-note{
     font-size:11.5px;
@@ -626,11 +629,13 @@ async function fetchSuggestions(q){
   return items;
 }
 
+function acEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function renderAC(){
   if(!acItems.length){ hideAC(); return; }
   acEl.innerHTML = acItems.map((it, i) =>
     '<div class="ac-item' + (i===acActive?' active':'') + '" data-i="'+i+'">' +
-      it.main + '<span class="sub">' + it.full + '</span>' +
+      '<span class="main">' + acEsc(it.main) + '</span>' +
+      '<span class="sub">' + acEsc(it.full) + '</span>' +
     '</div>'
   ).join('');
   acEl.hidden = false;
