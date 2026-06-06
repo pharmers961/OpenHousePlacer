@@ -35,9 +35,10 @@ export async function ensureStripeCustomer(db, profile, user) {
   return customer.id;
 }
 
-// Build the public site URL for Checkout redirects.
+// Build the public site URL for Checkout redirects (no trailing slash).
 export function appUrl(req) {
-  return process.env.APP_URL || new URL(req.url).origin;
+  const u = process.env.APP_URL || new URL(req.url).origin;
+  return u.replace(/\/+$/, ''); // strip trailing slash(es) so we never build "…com//app.html"
 }
 
 // JSON response helper.
