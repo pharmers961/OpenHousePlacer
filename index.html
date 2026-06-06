@@ -354,13 +354,12 @@
     <div class="body">
       <button class="close" id="modalClose" aria-label="Close">&times;</button>
       <h3 id="modalTitle">Sign in</h3>
-      <p id="modalSub">Accounts &amp; checkout are coming soon. For now, preview the full app with Admin&nbsp;test.</p>
+      <p id="modalSub">Enter your email and we'll send you a secure sign-in link.</p>
       <form id="loginForm">
-        <input id="loginEmail" type="email" placeholder="you@brokerage.com" disabled />
-        <button class="btn primary block" type="submit" disabled>Email me a link — coming soon</button>
+        <input id="loginEmail" type="email" required placeholder="you@brokerage.com" autocomplete="email" />
+        <button class="btn primary block" type="submit" id="loginSubmit">Email me a link</button>
       </form>
-      <a class="btn block" id="modalAdmin" style="margin-top:10px;cursor:pointer">Open Admin test →</a>
-      <p id="loginMsg" style="min-height:18px"></p>
+      <p id="loginMsg" style="min-height:18px;font-size:13px;margin-top:10px"></p>
     </div>
   </div>
 </div>

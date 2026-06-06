@@ -5,7 +5,7 @@ import { stripe, adminDb, getUser, ensureStripeCustomer, appUrl, json } from './
 
 const PRICE_BY_PLAN = {
   agent: () => process.env.AGENT_PRICE_ID,            // Individual — $20/yr, 1 seat
-  brokerage: () => process.env.ENTERPRISE_PRICE_ID,   // Small Brokerage — $499/yr, up to 25 seats
+  brokerage: () => process.env.ENTERPRISE_PRICE_ID,   // Brokerage — $499/yr, up to 50 seats
   enterprise: () => process.env.ENTERPRISE_PRICE_ID,  // (alias; the public Enterprise tier is contact-sales)
 };
 
