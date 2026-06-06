@@ -739,17 +739,22 @@ const acEl = $('ac');
 
 function hideAC(){ acEl.hidden = true; acEl.innerHTML = ''; acItems = []; acActive = -1; }
 
+const acCache = new Map(); // cache suggestions per query to cut geocoding calls
 async function fetchSuggestions(q, token){
+  const key = q.toLowerCase();
+  if(acCache.has(key)) return acCache.get(key);
   const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
     encodeURIComponent(q) + '.json?autocomplete=true&limit=5&types=address,place&access_token=' + token;
   const r = await fetch(url);
   if(!r.ok) throw new Error('Address lookup failed (' + r.status + ').');
   const d = await r.json();
-  return (d.features || []).map(f => ({
+  const items = (d.features || []).map(f => ({
     full: f.place_name,
     main: f.text || f.place_name,
     center: f.center // [lng, lat]
   }));
+  acCache.set(key, items);
+  return items;
 }
 
 function acEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -782,7 +787,7 @@ $('addr').addEventListener('input', () => {
   selectedCoord = null; // typing invalidates a prior pick
   const q = $('addr').value.trim();
   clearTimeout(acTimer);
-  if(q.length < 3){ hideAC(); return; }
+  if(q.length < 4){ hideAC(); return; } // require 4+ chars before any lookup
   if(!TOKEN_OK){
     $('addrHint').textContent = 'This tool isn’t configured yet (missing Mapbox token).';
     return;
@@ -796,7 +801,7 @@ $('addr').addEventListener('input', () => {
       hideAC();
       setStatus(e.message, true);
     }
-  }, 280); // debounce to limit API calls
+  }, 500); // longer debounce → fewer geocoding calls while typing
 });
 
 // keyboard navigation of the suggestion list
@@ -870,7 +875,13 @@ function dist(a, b){
   return 2*R*Math.asin(Math.sqrt(s));
 }
 
+// Geocode with a small persistent cache so the same address isn't looked up twice.
+const GEO_CACHE_KEY = 'signdeployer_geocache';
+function geoCacheGet(addr){ try{ return (JSON.parse(localStorage.getItem(GEO_CACHE_KEY)||'{}'))[addr.trim().toLowerCase()] || null; }catch(e){ return null; } }
+function geoCacheSet(addr, val){ try{ const all=JSON.parse(localStorage.getItem(GEO_CACHE_KEY)||'{}'); all[addr.trim().toLowerCase()]=val; const ks=Object.keys(all); if(ks.length>200) delete all[ks[0]]; localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(all)); }catch(e){} }
 async function geocode(address, token){
+  const cached = geoCacheGet(address);
+  if(cached) return cached;
   const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
               encodeURIComponent(address) + '.json?limit=1&access_token=' + token;
   const r = await fetch(url);
@@ -878,7 +889,9 @@ async function geocode(address, token){
   const d = await r.json();
   if(!d.features || !d.features.length) throw new Error('Address not found. Try adding city & state.');
   const f = d.features[0];
-  return { center: f.center, full: f.place_name }; // [lng, lat] + complete address
+  const out = { center: f.center, full: f.place_name }; // [lng, lat] + complete address
+  geoCacheSet(address, out);
+  return out;
 }
 
 // Reverse geocode (used for manually-placed signs).
@@ -1034,10 +1047,14 @@ async function findSpots(home, token, maxDriveMin, wantCount){
 
   if(!candidates.length) return [];
 
-  // De-duplicate points that are within ~60m of each other.
+  // De-duplicate points within ~60m. Track "hits" = how many approach routes
+  // pass through a point — a free signal that it's a main road (it shows up on
+  // many of the routes buyers actually drive).
   let unique = [];
   candidates.forEach(c => {
-    if(!unique.some(u => dist(u.loc, c.loc) < 60)) unique.push(c);
+    const u = unique.find(u => dist(u.loc, c.loc) < 60);
+    if(u){ u.hits = (u.hits || 1) + 1; }
+    else { c.hits = 1; unique.push(c); }
   });
 
   // Annotate driving duration from the house via the Matrix API, then KEEP
@@ -1046,6 +1063,16 @@ async function findSpots(home, token, maxDriveMin, wantCount){
   unique = await annotateDriveTime(home, unique, token, maxDriveMin);
   unique = unique.filter(c => c.within);
   if(!unique.length) return [];
+
+  // COST SAVER: we only keep `wantCount` spots, so there's no need to run a
+  // road-class lookup on every candidate. Keep the strongest contenders —
+  // ranked by approach-route frequency (main roads) then closeness — and only
+  // Tilequery those. Plenty of headroom so the final picks are unchanged.
+  const TQ_CAP = Math.max(wantCount * 2 + 8, 20);
+  if(unique.length > TQ_CAP){
+    unique.sort((a,b) => (b.hits - a.hits) || (a.dHome - b.dHome));
+    unique = unique.slice(0, TQ_CAP);
+  }
 
   // Road-hierarchy scoring via Mapbox Tilequery (motorway → residential).
   // Higher-class roads = more visibility, so they score higher.
@@ -1324,8 +1351,37 @@ function wireManualPlacement(){
   map.on('touchcancel', clear);
 }
 
+// ---- Result cache: a finished search is saved by (address + #signs + drive),
+// so reopening the same listing/settings renders instantly with ZERO API calls.
+// A "Re-run fresh" button forces a live recompute. 30-day expiry, last 20 kept.
+const RESULT_CACHE_KEY = 'signdeployer_results';
+function resultKey(addr, count, drive){ return (addr||'').trim().toLowerCase() + '|' + count + '|' + drive; }
+function resultCacheGet(key){
+  try{ const e = (JSON.parse(localStorage.getItem(RESULT_CACHE_KEY)||'{}'))[key];
+    return (e && Date.now()-e.savedAt <= 30*864e5) ? e : null; }catch(e){ return null; }
+}
+function resultCacheSet(key, data){
+  try{ const all = JSON.parse(localStorage.getItem(RESULT_CACHE_KEY)||'{}');
+    all[key] = Object.assign({ savedAt: Date.now() }, data);
+    const ks = Object.keys(all);
+    if(ks.length > 20){ ks.sort((a,b)=>all[a].savedAt-all[b].savedAt); delete all[ks[0]]; }
+    localStorage.setItem(RESULT_CACHE_KEY, JSON.stringify(all));
+  }catch(e){}
+}
+let forceFresh = false;
+function showCachedNote(){
+  setStatus('Loaded your saved result — no API calls used.');
+  try{
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'util'; btn.style.marginLeft = '8px';
+    btn.textContent = '↻ Re-run fresh';
+    btn.addEventListener('click', () => { forceFresh = true; $('go').click(); });
+    statusEl.appendChild(btn);
+  }catch(e){}
+}
+
 $('go').addEventListener('click', async () => {
-  const address = $('addr').value.trim();
+  const address = DEMO ? DEMO_ADDR : $('addr').value.trim();
   const token = MAPBOX_TOKEN;
   setStatus('');
   $('results').innerHTML = '';
@@ -1334,46 +1390,61 @@ $('go').addEventListener('click', async () => {
   if(!TOKEN_OK){ setStatus('This tool isn’t configured yet — the Mapbox token is missing. Contact your admin.', true); return; }
   if(!address && !DEMO){ setStatus('Enter the listing address first.', true); return; }
 
+  const maxDriveMin = parseInt($('drive').value, 10);
+  const wantCount = parseInt($('count').value, 10);
+  const cacheKey = resultKey(address, wantCount, maxDriveMin);
+
   $('go').disabled = true;
   setStatus('Step 1 of 3 — locating address…', false, true);
 
   try{
     if(!ensureMap(token)){
       setStatus('Map could not start — check your token.', true);
-      $('go').disabled = false; return;
+      return;
     }
-    // Use the autocomplete-picked coordinate if available; otherwise geocode.
-    let home;
+
+    // Cache hit -> render instantly, no Mapbox calls.
+    if(!forceFresh){
+      const hit = resultCacheGet(cacheKey);
+      if(hit && hit.home && (hit.ordered||[]).length){
+        curHome = hit.home; lastHome = hit.home;
+        curOrdered = hit.ordered.slice(); lastOrdered = curOrdered;
+        curMeta = hit.meta || { optimized:false };
+        if(hit.full) $('addr').value = hit.full;
+        if(!map.isStyleLoaded()){ await new Promise(res => { map.once('load', res); setTimeout(res, 4000); }); }
+        map.setCenter(curHome); map.setZoom(14);
+        renderResults(true);
+        saveSession();
+        showCachedNote();
+        return;
+      }
+    }
+
+    // ---- Live search ----
+    let home, full = address;
     if(DEMO){
-      // Demo is hard-locked to the sample listing — ignore whatever is in the
-      // (read-only) field so it can't be changed via dev tools.
-      home = DEMO_COORD.slice();
-      $('addr').value = DEMO_ADDR;
+      home = DEMO_COORD.slice(); full = DEMO_ADDR; $('addr').value = DEMO_ADDR;
     } else if(selectedCoord){
       home = selectedCoord; // field already holds the full picked address
     } else {
       const g = await geocode(address, token);
       home = g.center;
-      if(g.full) $('addr').value = g.full; // show the complete, resolved address
+      if(g.full){ full = g.full; $('addr').value = g.full; }
     }
 
-    // Make sure the map style has loaded before adding markers.
     if(!map.isStyleLoaded()){
       await new Promise(res => { map.once('load', res); setTimeout(res, 4000); });
     }
     map.setCenter(home); map.setZoom(14);
-
     clearMap();
-    addMarker(home[0], home[1], '\u2302', true); // house symbol
+    addMarker(home[0], home[1], '⌂', true); // house symbol
 
     setStatus('Step 2 of 3 — analyzing approach roads, drive times & road visibility…', false, true);
-    const maxDriveMin = parseInt($('drive').value, 10);
-    const wantCount = parseInt($('count').value, 10);
     const spots = await findSpots(home, token, maxDriveMin, wantCount);
 
     if(!spots.length){
       setStatus('No sign spots found within ' + maxDriveMin + ' min drive. Try increasing the limit or a more complete address.', true);
-      $('go').disabled = false; return;
+      return;
     }
 
     setStatus('Step 3 of 3 — optimizing the driving order…', false, true);
@@ -1388,12 +1459,21 @@ $('go').addEventListener('click', async () => {
 
     const fewer = ordered.length < wantCount;
     saveSession();
+
+    // Save the result so reopening this listing (same settings) is free.
+    const payload = { home: curHome, ordered: curOrdered, meta: curMeta, full };
+    resultCacheSet(cacheKey, payload);
+    if(full && full.toLowerCase() !== address.toLowerCase()){
+      resultCacheSet(resultKey(full, wantCount, maxDriveMin), payload);
+    }
+
     setStatus('Done — ' + ordered.length + ' spots found within ' + maxDriveMin + ' min.' +
       (fewer ? ' Not enough road points within your timeframe. Increase your drive time for more spots.' : ''));
   }catch(err){
     setStatus(err.message || 'Something went wrong.', true);
   }finally{
     $('go').disabled = false;
+    forceFresh = false;
   }
 });
 </script>
