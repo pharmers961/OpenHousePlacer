@@ -53,7 +53,12 @@ export default async (req) => {
 export const config = { path: '/api/stripe-webhook' };
 
 // Write a Stripe subscription's state into our DB.
-async function applySubscription(db, sub) {
+async function applySubscription(db, subInput) {
+  // Re-fetch the latest subscription from Stripe so out-of-order webhook events
+  // (e.g. a late "created/incomplete" arriving after "active") can't leave a
+  // stale status. Stripe is the source of truth.
+  let sub = subInput;
+  try { if (subInput?.id) sub = await stripe.subscriptions.retrieve(subInput.id); } catch (_) { /* fall back to event payload */ }
   const meta = sub.metadata || {};
   const userId = meta.supabase_user_id;
   const plan = meta.plan || 'agent';
