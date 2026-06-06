@@ -14,34 +14,11 @@
 
   injectStyles();
 
-  // --- Admin test bypass (code-gated) ---------------------------------------
-  // "Admin test" enters the tool without Supabase/paywall, but ONLY with the
-  // correct access code (?admin=CODE). We store just a hash of the code here —
-  // never the word itself — and persist a flag so refreshes stay in test mode.
-  // Exit (chip) clears it and returns home.
-  function codeHash(s){ s=String(s); let h=5381; for(let i=0;i<s.length;i++){ h=((h<<5)+h)+s.charCodeAt(i); h|=0; } return h>>>0; }
-  const ADMIN_CODE_HASH = 4059872811;
-  const _params = new URLSearchParams(location.search);
-  let _admin = false;
-  const _code = _params.get('admin');
-  if (_code != null) {
-    _admin = codeHash(_code.trim()) === ADMIN_CODE_HASH;
-    try { if (_admin) localStorage.setItem('sd_admin', 'ok'); } catch (e) {}
-  } else {
-    try { _admin = localStorage.getItem('sd_admin') === 'ok'; } catch (e) {}
-  }
-  if (_admin) { mountTestChip(); return; }
-
-  // --- Demo bypass (public "Try the app") -----------------------------------
-  // Opened from the home page via ?demo=1. Skips Supabase/paywall and runs the
-  // tool in locked demo mode (the app itself fixes the listing address).
-  let _demo = _params.get('demo') === '1';
-  try {
-    if (_demo) sessionStorage.setItem('sd_demo', '1');
-    else if (sessionStorage.getItem('sd_demo') === '1') _demo = true;
-  } catch (e) {}
-  if (_demo) { mountDemoChip(); return; }
-  // ---------------------------------------------------------------------------
+  // --- Demo (public "Try the app", ?demo=1) ---------------------------------
+  // Skips the paywall and runs the tool in locked demo mode (the app fixes the
+  // listing). Driven purely by the URL param, so it persists across refresh and
+  // there is no hidden admin/bypass code anywhere in the client.
+  if (new URLSearchParams(location.search).get('demo') === '1') { mountDemoChip(); return; }
 
   const gate = buildGate();
   document.body.appendChild(gate.el);
@@ -137,19 +114,6 @@
     chip.className = 'sd-chip';
     chip.innerHTML = `<span>🎬 Demo</span><a class="sd-link" href="/">Home</a>`;
     document.body.appendChild(chip);
-  }
-
-  // ---- admin test mode chip ----
-  function mountTestChip() {
-    const chip = document.createElement('div');
-    chip.className = 'sd-chip';
-    chip.innerHTML = `<span>🔧 Admin test mode</span><button class="sd-link" id="sd-exit">Exit</button>`;
-    document.body.appendChild(chip);
-    const btn = document.getElementById('sd-exit');
-    if (btn) btn.addEventListener('click', () => {
-      try { localStorage.removeItem('sd_admin'); } catch (e) {}
-      location.href = '/';
-    });
   }
 
   // ---- gate overlay + helpers ----

@@ -584,21 +584,14 @@ if(TOKEN_OK){
   setStatus('This tool isn’t configured yet — the Mapbox token is missing. Contact your admin.', true);
 }
 
-// ---- DEMO vs ADMIN ---------------------------------------------------------
-// DEMO (public "Try the app", ?demo=1) locks the listing to the White House.
-// ADMIN (entered the access code, or ?admin=...) is the FULL app: the address
-// is fully editable. Admin always wins over a leftover demo flag, and we clear
-// that flag so a prior demo visit can never lock the admin session.
-const _q = new URLSearchParams(location.search);
-const ADMIN = (_q.get('admin') != null) ||
-              (function(){ try { return localStorage.getItem('sd_admin') === 'ok'; } catch(e){ return false; } })();
-if(ADMIN){ try { sessionStorage.removeItem('sd_demo'); } catch(e){} }
-const DEMO = !ADMIN && ( _q.get('demo') === '1' ||
-             (function(){ try { return sessionStorage.getItem('sd_demo') === '1'; } catch(e){ return false; } })() );
+// ---- DEMO MODE (public "Try the app", ?demo=1) -----------------------------
+// Locks the listing to a sample address (the White House); only the sign count
+// and drive time are adjustable. Driven purely by the URL param (it persists
+// across refresh), so there's no hidden admin/bypass mechanism in the client.
+const DEMO = new URLSearchParams(location.search).get('demo') === '1';
 const DEMO_ADDR  = '1600 Pennsylvania Avenue NW, Washington, DC 20500';
 const DEMO_COORD = [-77.0365, 38.8977]; // [lng, lat]
 if(DEMO){
-  try { sessionStorage.setItem('sd_demo', '1'); } catch(e){}
   const a = $('addr');
   if(a){
     a.value = DEMO_ADDR;

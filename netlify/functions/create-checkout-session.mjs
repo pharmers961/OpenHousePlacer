@@ -22,26 +22,33 @@ export default async (req) => {
   const price = priceFn();
   if (!price) return json({ error: `Price for "${plan}" is not configured` }, 500);
 
-  const db = adminDb();
-  const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single();
-  const customerId = await ensureStripeCustomer(db, profile, user);
+  try {
+    const db = adminDb();
+    const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).maybeSingle();
+    const customerId = await ensureStripeCustomer(db, profile, user);
 
-  const base = appUrl(req);
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    customer: customerId,
-    line_items: [{ price, quantity: 1 }],
-    allow_promotion_codes: true,
-    success_url: `${base}/app.html?checkout=success`,
-    cancel_url: `${base}/#pricing`,
-    // Carried through to the webhook so we know who paid and for what.
-    subscription_data: {
+    const base = appUrl(req);
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: customerId,
+      line_items: [{ price, quantity: 1 }],
+      allow_promotion_codes: true,
+      success_url: `${base}/app.html?checkout=success`,
+      cancel_url: `${base}/#pricing`,
+      // Carried through to the webhook so we know who paid and for what.
+      subscription_data: {
+        metadata: { supabase_user_id: user.id, plan, company_name: companyName || '' },
+      },
       metadata: { supabase_user_id: user.id, plan, company_name: companyName || '' },
-    },
-    metadata: { supabase_user_id: user.id, plan, company_name: companyName || '' },
-  });
+    });
 
-  return json({ url: session.url });
+    return json({ url: session.url });
+  } catch (e) {
+    // Surface the real reason (e.g. "No such price …" from a test/live mismatch)
+    // instead of crashing into a generic network error on the client.
+    console.error('create-checkout-session error:', e);
+    return json({ error: e.message || 'Could not start checkout.' }, 500);
+  }
 };
 
 export const config = { path: '/api/create-checkout-session' };
