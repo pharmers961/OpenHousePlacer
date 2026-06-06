@@ -83,12 +83,12 @@
   }
 
   async function loadAccess(user) {
-    const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
+    const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
     let branding = null;
     let active = ACTIVE.includes(profile?.subscription_status);
     if (profile?.company_id) {
       const { data: company } = await sb
-        .from('companies').select('*').eq('id', profile.company_id).single();
+        .from('companies').select('*').eq('id', profile.company_id).maybeSingle();
       if (company) {
         active = active || ACTIVE.includes(company.subscription_status);
         branding = company;
@@ -114,6 +114,7 @@
     chip.className = 'sd-chip';
     chip.innerHTML = `
       <span>${escapeHtml(user.email)} · ${access.branding ? 'Brokerage' : 'Agent'}</span>
+      <a class="sd-link" href="/account.html">Account</a>
       <button class="sd-link" id="sd-billing">Billing</button>
       <button class="sd-link" id="sd-signout">Sign out</button>`;
     document.body.appendChild(chip);

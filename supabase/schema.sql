@@ -85,3 +85,62 @@ create policy "member can read company"
   using (
     id in (select company_id from public.profiles where id = auth.uid())
   );
+
+-- ---------------------------------------------------------------------------
+-- company_invites: pending seat invitations for the Brokerage plan.
+-- An owner invites an email; when that person signs up, the trigger below
+-- attaches them to the company automatically. Members already signed up are
+-- attached immediately by the /api/team function.
+-- ---------------------------------------------------------------------------
+create table if not exists public.company_invites (
+  id          uuid primary key default gen_random_uuid(),
+  company_id  uuid not null references public.companies(id) on delete cascade,
+  email       text not null,
+  invited_by  uuid references auth.users(id),
+  created_at  timestamptz not null default now(),
+  unique (company_id, email)
+);
+
+alter table public.company_invites enable row level security;
+
+-- Owners can read invites for their own company (the server uses the
+-- service-role key for writes, which bypasses RLS).
+drop policy if exists "owner reads own invites" on public.company_invites;
+create policy "owner reads own invites"
+  on public.company_invites for select
+  using (
+    company_id in (
+      select company_id from public.profiles
+      where id = auth.uid() and company_role = 'owner'
+    )
+  );
+
+-- Recreate handle_new_user so that, in addition to creating the profile, a new
+-- user whose email was invited is auto-attached to that company and the invite
+-- is consumed.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  inv record;
+begin
+  insert into public.profiles (id, email)
+  values (new.id, new.email)
+  on conflict (id) do nothing;
+
+  select * into inv from public.company_invites
+    where lower(email) = lower(new.email)
+    order by created_at asc limit 1;
+
+  if inv.company_id is not null then
+    update public.profiles
+      set company_id = inv.company_id, company_role = 'member'
+      where id = new.id;
+    delete from public.company_invites where id = inv.id;
+  end if;
+
+  return new;
+end;
+$$;
