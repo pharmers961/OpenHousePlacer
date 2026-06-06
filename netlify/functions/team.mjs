@@ -62,7 +62,11 @@ export default async (req) => {
         return json({ ok: true, ...(await snapshot()) });
       }
 
-      // --- Invite agent ---
+      // --- Invite agent (always a PENDING invite; never auto-attach) ---
+      // The invited person joins only when THEY sign in (consent): a new signup
+      // is attached by the handle_new_user trigger; an existing account claims it
+      // via /api/accept-invite on next visit. We never modify someone else's
+      // account just because an owner typed their email.
       const email = String(body.email || '').trim().toLowerCase();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: 'Enter a valid email address.' }, 400);
 
@@ -72,15 +76,13 @@ export default async (req) => {
       if (snap.members.some((m) => (m.email || '').toLowerCase() === email))
         return json({ error: 'That agent is already on your team.' }, 409);
 
+      // If that email already belongs to someone with a company, don't poach them.
       const { data: existing } = await db
-        .from('profiles').select('id, company_id').ilike('email', email).maybeSingle();
-
-      if (existing) {
-        if (existing.company_id && existing.company_id !== companyId)
-          return json({ error: 'That agent already belongs to another brokerage.' }, 409);
-        await db.from('profiles')
-          .update({ company_id: companyId, company_role: 'member' }).eq('id', existing.id);
-        return json({ ok: true, attached: true, ...(await snapshot()) });
+        .from('profiles').select('company_id').ilike('email', email).maybeSingle();
+      if (existing?.company_id) {
+        return json({ error: existing.company_id === companyId
+          ? 'That agent is already on your team.'
+          : 'That email already belongs to another brokerage.' }, 409);
       }
 
       await db.from('company_invites')

@@ -1176,7 +1176,7 @@ function renderNav(home, ordered, optimized, reason, partial){
             ' are below — tap each as you reach it:</p><ol class="overflow">';
     overflow.forEach((s, i) => {
       html += '<li><a href="' + singleStopUrl(s.loc) + '" target="_blank" rel="noopener">Stop ' +
-              (covered + i + 1) + ' — ' + s.name + '</a></li>';
+              (covered + i + 1) + ' — ' + acEsc(s.name) + '</a></li>';
     });
     html += '</ol>';
   }
@@ -1254,8 +1254,8 @@ function renderResults(fit){
     const cls = s.manual ? 'manual placement' : niceClass(s.roadClass);
     html += '<div class="spot" data-i="'+i+'" data-lng="'+s.loc[0]+'" data-lat="'+s.loc[1]+'">' +
               '<div class="num">'+num+'</div>' +
-              '<div class="meta"><span class="road">'+s.name+'</span><br>' +
-              '<span class="why">'+cls+' • '+dm+' from listing</span></div>' +
+              '<div class="meta"><span class="road">'+acEsc(s.name)+'</span><br>' +
+              '<span class="why">'+acEsc(cls)+' • '+dm+' from listing</span></div>' +
               '<button class="rm" data-i="'+i+'" title="Remove this sign" aria-label="Remove sign '+num+'">&times;</button>' +
             '</div>';
   });

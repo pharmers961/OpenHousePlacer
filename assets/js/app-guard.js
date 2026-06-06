@@ -39,6 +39,16 @@
 
     let access = await loadAccess(user);
 
+    // Were they invited to a brokerage? Claim a pending invite, then re-check.
+    if (!access.active) {
+      try {
+        const token = (await sb.auth.getSession()).data.session?.access_token;
+        const r = await fetch('/api/accept-invite', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+        const d = await r.json().catch(() => null);
+        if (d && d.attached) access = await loadAccess(user);
+      } catch (e) { /* ignore */ }
+    }
+
     // Just paid? The webhook can lag a few seconds — poll briefly.
     if (!access.active && new URLSearchParams(location.search).get('checkout') === 'success') {
       for (let i = 0; i < 8 && !access.active; i++) {
