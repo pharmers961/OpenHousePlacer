@@ -7,5 +7,15 @@
   publish = "."
   functions = "netlify/functions"
 
+[build.environment]
+  # SUPABASE_URL is a public, client-side value: the browser needs it to talk to
+  # Supabase (see assets/js/config.js + app-guard.js), and it sits next to the
+  # publishable anon key. It is also set as an env var for the serverless
+  # functions, which is why the secrets scanner sees the same value in the build
+  # output and flags it. The project URL is not a secret, so exempt this one key
+  # from scanning. Real secrets (STRIPE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY,
+  # etc.) are still scanned.
+  SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL"
+
 [functions]
   node_bundler = "esbuild"
