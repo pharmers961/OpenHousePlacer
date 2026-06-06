@@ -156,6 +156,7 @@
   .plan .badge{ display:inline-block; background:var(--ink); color:#fff; font-size:10px; font-weight:700;
     letter-spacing:1.5px; text-transform:uppercase; padding:4px 10px; border-radius:20px; margin-bottom:6px; }
   .plan .price{ font-size:42px; font-weight:800; letter-spacing:-1px; margin:10px 0 2px; }
+  .save-note{ font-size:12px; font-weight:700; color:#1b6b34; margin:2px 0 0; }
   .plan .price small{ font-size:15px; font-weight:600; color:var(--muted); letter-spacing:0; }
   .plan .seats{ font-size:13px; color:var(--muted); margin-bottom:18px; }
   .plan ul{ list-style:none; padding:0; margin:0 0 24px; flex:1; }
@@ -317,7 +318,6 @@
     <div class="billing-toggle" role="group" aria-label="Billing period">
       <button type="button" id="billMonthly">Monthly</button>
       <button type="button" id="billYearly" class="active">Yearly</button>
-      <span class="save">2 months free</span>
     </div>
 
     <div class="plans">
@@ -325,6 +325,7 @@
       <div class="plan">
         <div class="tag">Individual Agent</div>
         <div class="price" id="agentPrice">$49<small>/year</small></div>
+        <div class="save-note" id="agentSaveNote">✓ 2 months free vs paying monthly</div>
         <div class="seats">For one solo agent</div>
         <ul>
           <li>Full sign-placement tool</li>

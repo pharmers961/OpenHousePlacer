@@ -48,6 +48,8 @@
       price.innerHTML = isMonthly ? '$7<small>/month</small>' : '$49<small>/year</small>';
       cta.dataset.plan = isMonthly ? 'agent_monthly' : 'agent';
       cta.textContent = isMonthly ? 'Get started — $7/month' : 'Get started — $49/year';
+      const note = document.getElementById('agentSaveNote');
+      if (note) note.style.display = isMonthly ? 'none' : '';
     };
     monthly.addEventListener('click', () => apply('monthly'));
     yearly.addEventListener('click', () => apply('yearly'));
@@ -93,12 +95,16 @@
     const login = $('navLogin');
     if (!login) return;
     if (state.user && state.active) { login.textContent = 'Open app'; }
-    else if (state.user) { login.textContent = 'Choose a plan'; }
+    else if (state.user) { login.textContent = 'Sign out'; }   // logged in but not subscribed
     else { login.textContent = 'Sign in'; }
   }
-  function onNavLogin() {
+  async function onNavLogin() {
     if (state.user && state.active) return (location.href = '/app.html');
-    if (state.user) return (location.hash = '#pricing');
+    if (state.user) {                                          // clear a stale/non-subscribed session
+      if (sb) { try { await sb.auth.signOut(); } catch (e) {} }
+      state.user = null; state.active = false; updateNav();
+      return;
+    }
     openLogin(null);
   }
 

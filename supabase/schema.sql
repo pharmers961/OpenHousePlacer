@@ -158,10 +158,18 @@ insert into storage.buckets (id, name, public)
 values ('branding', 'branding', true)
 on conflict (id) do nothing;
 
+-- Restrict the bucket to small image files (defense-in-depth; the client also
+-- checks). file_size_limit is in bytes (2 MB).
+update storage.buckets
+  set public = true,
+      file_size_limit = 2097152,
+      allowed_mime_types = array['image/png','image/jpeg','image/svg+xml','image/webp']
+  where id = 'branding';
+
+-- No public "list/select" policy on purpose: the bucket is public, so each
+-- logo's direct URL still loads in the app, but the bucket cannot be LISTED
+-- (which would let anyone enumerate company IDs from the folder names).
 drop policy if exists "branding public read" on storage.objects;
-create policy "branding public read"
-  on storage.objects for select
-  using (bucket_id = 'branding');
 
 -- Uploads/updates are scoped to the uploader's OWN company folder
 -- (logos are stored at "<company_id>/..."), so a user can't overwrite or
