@@ -7,5 +7,16 @@
   publish = "."
   functions = "netlify/functions"
 
+[build.environment]
+  # The browser app must ship PUBLIC, publishable values to work:
+  #   - Supabase project URL + anon/publishable key  → assets/js/config.js
+  #   - Mapbox PUBLIC token (pk.…)                    → app.html
+  # Netlify's secret scanner flags these as false positives. Exclude the known
+  # public files/keys so the build passes. REAL secrets (Stripe secret key,
+  # Supabase service-role key, Stripe webhook secret) live only in Netlify env
+  # vars / functions and are NOT in these files, so they remain protected.
+  SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,APP_URL"
+  SECRETS_SCAN_OMIT_PATHS = "assets/js/config.js,app.html,index.html"
+
 [functions]
   node_bundler = "esbuild"
