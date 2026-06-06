@@ -2,8 +2,8 @@
 
 This turns SignDeployer from a free static page into a subscription product:
 
-- **Agent** — $19.99 / year, one real-estate agent.
-- **Enterprise** — fixed annual price, unlimited agents + your company's branding.
+- **Individual Agent** — $49 / year (or $7 / month), one real-estate agent.
+- **Brokerage** — $499 / year, up to 50 agents + your company's branding.
 
 You only need to do the account steps below **once**. Until you finish them,
 the site keeps working exactly as it does today (the paywall stays off).
@@ -50,11 +50,13 @@ Stripe → (webhook) → our backend → updates the database → unlocks the ag
 1. Go to <https://stripe.com> → create an account. Stay in **Test mode** (toggle
    top-right) while building.
 2. Left sidebar → **Product catalog** → **Add product**:
-   - **Agent** — recurring price **$19.99**, billing period **Yearly**. Save.
-   - **Enterprise** — recurring price **(your chosen fixed price, e.g. $499)**,
-     billing period **Yearly**. Save.
-3. Open each product and copy its **Price ID** (looks like `price_1AbC...`,
-   NOT the `prod_...` id). You now have `AGENT_PRICE_ID` and `ENTERPRISE_PRICE_ID`.
+   - **Individual Agent** — add **two** recurring prices on the same product:
+     **$49 Yearly** and **$7 Monthly**. Save.
+   - **Brokerage** — recurring price **$499**, billing period **Yearly**. Save.
+3. Open the products and copy each **Price ID** (looks like `price_1AbC...`,
+   NOT the `prod_...` id). You now have `AGENT_PRICE_ID` (the $49/yr),
+   `AGENT_MONTHLY_PRICE_ID` (the $7/mo), and `ENTERPRISE_PRICE_ID` (the $499/yr
+   Brokerage — env var name is legacy).
 4. Left sidebar → **Developers** → **API keys**. Copy the **Secret key**
    (`sk_test_...`).
 
@@ -79,8 +81,9 @@ Stripe → (webhook) → our backend → updates the database → unlocks the ag
    | Name | Value |
    |------|-------|
    | `STRIPE_SECRET_KEY` | `sk_test_...` |
-   | `AGENT_PRICE_ID` | `price_...` (Agent) |
-   | `ENTERPRISE_PRICE_ID` | `price_...` (Enterprise) |
+   | `AGENT_PRICE_ID` | `price_...` (Individual $49/yr) |
+   | `AGENT_MONTHLY_PRICE_ID` | `price_...` (Individual $7/mo) |
+   | `ENTERPRISE_PRICE_ID` | `price_...` (Brokerage $499/yr) |
    | `SUPABASE_URL` | your Project URL |
    | `SUPABASE_SERVICE_ROLE_KEY` | the **secret** key (`sb_secret_...`) |
    | `APP_URL` | your Netlify URL |

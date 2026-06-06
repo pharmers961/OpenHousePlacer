@@ -13,7 +13,7 @@ window.SIGNDEPLOYER_CONFIG = {
   // Display-only price labels (the real prices live in Stripe and are enforced
   // by the server — changing these can't grant access). The landing page also
   // hard-codes these in its pricing cards.
-  AGENT_PRICE_LABEL: '$20 / year',
+  AGENT_PRICE_LABEL: '$49 / year (or $7 / month)',
   BROKERAGE_PRICE_LABEL: '$499 / year',
   ENTERPRISE_PRICE_LABEL: 'Contact us',
 };
