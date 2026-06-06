@@ -72,6 +72,14 @@
     <p class="muted" id="noBilling" hidden style="margin-top:14px">No billing account yet. <a class="inline" href="/#pricing">Choose a plan →</a></p>
   </div>
 
+  <!-- Upgrade to Brokerage (active solo agents only) -->
+  <div class="card" id="upgradeCard" hidden>
+    <h2>Upgrade</h2>
+    <p class="muted" style="margin:-6px 0 14px">Managing a team? Upgrade to <b>Brokerage</b> — up to 50 agents, your own branding, and a team dashboard. We'll automatically cancel your individual plan so you're never double-charged.</p>
+    <button class="btn primary" id="upgradeBtn">Upgrade to Brokerage — $499/year</button>
+    <p class="msg" id="upgradeMsg" role="status" aria-live="polite"></p>
+  </div>
+
   <!-- Team management (owners only) -->
   <div class="card" id="teamCard" hidden>
     <h2>Team — <span id="teamName"></span></h2>
@@ -169,8 +177,29 @@
     $('billingBtn').addEventListener('click', manageBilling);
     $('signOutBtn').addEventListener('click', async () => { await sb.auth.signOut(); location.href = '/'; });
 
+    // Active solo agent (no company yet) → offer the Brokerage upgrade.
+    if(active && profile?.plan === 'agent' && !profile?.company_id){
+      $('upgradeCard').hidden = false;
+      $('upgradeBtn').addEventListener('click', startUpgrade);
+    }
+
     // Owner-only: team + branding
     if(profile?.company_id && profile?.company_role === 'owner'){ initTeam(company); }
+  }
+
+  async function startUpgrade(){
+    const btn = $('upgradeBtn'), msg = $('upgradeMsg');
+    btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Opening checkout…';
+    try{
+      const token = (await sb.auth.getSession()).data.session?.access_token;
+      const r = await fetch('/api/create-checkout-session', {
+        method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+        body: JSON.stringify({ plan:'brokerage' })
+      });
+      const d = await r.json();
+      if(d.url){ location.href = d.url; }
+      else { msg.className='msg err'; msg.textContent = d.error || 'Could not start checkout.'; btn.disabled=false; }
+    }catch(e){ msg.className='msg err'; msg.textContent = 'Network error.'; btn.disabled=false; }
   }
 
   async function manageBilling(){

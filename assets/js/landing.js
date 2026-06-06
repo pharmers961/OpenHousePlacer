@@ -99,7 +99,11 @@
   // ---- plan / checkout ----
   function onPlan(plan) {
     if (!sb) { openLogin(plan); return; } // not configured yet — still collect intent
-    if (state.user && state.active) return (location.href = '/app.html'); // already paying
+    if (state.user && state.active) {
+      // Already paying. Brokerage button → account page (upgrade/manage there);
+      // agent button → straight into the app.
+      return (location.href = plan === 'brokerage' ? '/account.html' : '/app.html');
+    }
     if (state.user) return startCheckout(plan);
     openLogin(plan); // must sign in first; we resume checkout afterward
   }

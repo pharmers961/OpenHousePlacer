@@ -100,14 +100,29 @@ async function applySubscription(db, subInput) {
     if (userId && company) {
       await db
         .from('profiles')
-        .update({ plan, company_id: company.id, company_role: 'owner' })
+        .update({ plan, company_id: company.id, company_role: 'owner', subscription_status: status, current_period_end: periodEnd })
         .eq('id', userId);
+    }
+
+    // Upgrade cleanup: if this owner was previously on an individual plan, cancel
+    // that old subscription on the same customer so they're not double-billed.
+    if (status === 'active' || status === 'trialing') {
+      try {
+        const others = await stripe.subscriptions.list({ customer: sub.customer, status: 'active', limit: 20 });
+        for (const s of others.data) {
+          if (s.id !== sub.id) await stripe.subscriptions.cancel(s.id);
+        }
+      } catch (e) { console.error('Upgrade: could not cancel old subscription:', e.message); }
     }
     return;
   }
 
   // Individual "agent" plan.
   if (userId) {
+    // Don't clobber a company membership (e.g. an old individual sub being
+    // canceled right after the user upgraded to a brokerage).
+    const { data: prof } = await db.from('profiles').select('company_id').eq('id', userId).maybeSingle();
+    if (prof?.company_id) return;
     await db
       .from('profiles')
       .update({ plan: 'agent', subscription_status: status, current_period_end: periodEnd })
