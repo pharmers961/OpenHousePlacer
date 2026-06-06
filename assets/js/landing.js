@@ -36,6 +36,24 @@
     btn.addEventListener('click', () => onPlan(btn.dataset.plan))
   );
 
+  // ---- pricing: monthly / yearly toggle (Individual plan) ----
+  (function wireBillingToggle() {
+    const monthly = $('billMonthly'), yearly = $('billYearly');
+    const price = $('agentPrice'), cta = $('agentCta');
+    if (!monthly || !yearly || !price || !cta) return;
+    const apply = (period) => {
+      const isMonthly = period === 'monthly';
+      monthly.classList.toggle('active', isMonthly);
+      yearly.classList.toggle('active', !isMonthly);
+      price.innerHTML = isMonthly ? '$7<small>/month</small>' : '$49<small>/year</small>';
+      cta.dataset.plan = isMonthly ? 'agent_monthly' : 'agent';
+      cta.textContent = isMonthly ? 'Get started — $7/month' : 'Get started — $49/year';
+    };
+    monthly.addEventListener('click', () => apply('monthly'));
+    yearly.addEventListener('click', () => apply('yearly'));
+    apply('yearly');
+  })();
+
   // ---- init / session ----
   init();
   async function init() {

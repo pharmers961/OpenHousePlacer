@@ -106,9 +106,10 @@
       <input id="brName" type="text" placeholder="Luxe Realty Group" />
     </div>
     <div class="field">
-      <label for="brLogo">Logo URL (https)</label>
-      <input id="brLogo" type="text" placeholder="https://yourbrokerage.com/logo.png" />
-      <p class="muted" style="margin:6px 0 0">A direct link to a logo image (PNG/SVG). It shows on the dark sidebar, so a white/light logo works best.</p>
+      <label for="brLogoFile">Logo</label>
+      <input id="brLogoFile" type="file" accept="image/png,image/svg+xml,image/jpeg,image/webp" />
+      <p class="muted" id="brUploadMsg" style="margin:6px 0 0">Upload a PNG/SVG. It shows on the dark sidebar, so a white/light logo works best.</p>
+      <input id="brLogo" type="text" placeholder="…or paste an https:// logo URL" style="margin-top:8px" />
     </div>
     <div class="field">
       <label for="brColor">Brand color</label>
@@ -234,6 +235,23 @@
     $('brColor').addEventListener('input', e => { $('brColorHex').value = e.target.value; });
     $('brColorHex').addEventListener('input', e => { const v=e.target.value.trim(); if(/^#[0-9a-fA-F]{6}$/.test(v)) $('brColor').value = v; });
     $('brSave').addEventListener('click', saveBranding);
+
+    // Logo upload → Supabase Storage (public "branding" bucket) → fill the URL field.
+    const fileInput = $('brLogoFile');
+    if(fileInput) fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0]; if(!file) return;
+      const um = $('brUploadMsg'); um.className = 'muted'; um.textContent = 'Uploading…';
+      try{
+        if(file.size > 2*1024*1024) throw new Error('Please use an image under 2 MB.');
+        const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g,'') || 'png';
+        const path = company.id + '/logo-' + Date.now() + '.' + ext;
+        const up = await sb.storage.from('branding').upload(path, file, { upsert:true, contentType:file.type || undefined });
+        if(up.error) throw up.error;
+        const { data } = sb.storage.from('branding').getPublicUrl(path);
+        $('brLogo').value = data.publicUrl;
+        um.className = 'msg ok'; um.textContent = 'Uploaded — click “Save branding” to apply it for your team.';
+      }catch(err){ um.className = 'msg err'; um.textContent = 'Upload failed: ' + (err.message || err); }
+    });
 
     render(await authedFetch('GET'));
     $('inviteForm').addEventListener('submit', async (e) => {

@@ -386,6 +386,31 @@
     .legend .row{ margin:2px 0; }
   }
 
+  /* ---- Onboarding tip + utility bar ---- */
+  .utilbar{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .util{ border:1px solid var(--line); background:#fff; color:var(--ink); font:inherit; font-size:11px;
+    font-weight:600; letter-spacing:.5px; text-transform:uppercase; padding:8px 12px; border-radius:4px; cursor:pointer; }
+  .util:hover{ background:var(--soft); }
+  .onboard{ margin:0 0 16px; padding:13px 30px 13px 14px; border:1px dashed var(--line); border-radius:6px;
+    background:var(--soft); font-size:12.5px; line-height:1.55; color:var(--accent-soft); position:relative; }
+  .onboard b{ color:var(--ink); }
+  .onboard .x{ position:absolute; top:6px; right:8px; border:none; background:none; cursor:pointer;
+    font-size:18px; line-height:1; color:var(--muted); }
+
+  /* ---- Mobile List/Map toggle ---- */
+  .view-toggle{ display:none; }
+  @media (max-width:760px){
+    .view-toggle{ display:flex; position:fixed; left:50%; transform:translateX(-50%); bottom:14px; z-index:7;
+      background:var(--ink); border-radius:30px; padding:5px; gap:4px; box-shadow:0 8px 24px rgba(0,0,0,.3); }
+    .view-toggle button{ border:none; background:none; color:#fff; font:inherit; font-weight:600; font-size:12px;
+      padding:8px 20px; border-radius:24px; cursor:pointer; opacity:.7; }
+    .view-toggle button.active{ background:#fff; color:var(--ink); opacity:1; }
+    body.show-map .panel{ display:none; }
+    body.show-map #map{ min-height:100dvh; }
+    body.show-list #map{ display:none; }
+    body.show-list .panel{ max-height:none; height:auto; }
+  }
+
   /* ---- Print: a clean route field sheet (hide the app chrome) ---- */
   #printSheet{ display:none; }
   @media print{
@@ -405,6 +430,16 @@
   </div>
 
   <div class="scroll">
+    <div class="utilbar" id="utilbar" hidden>
+      <button type="button" class="util" id="sampleBtn">Try a sample</button>
+    </div>
+    <div class="onboard" id="onboard" hidden>
+      <button type="button" class="x" id="onboardX" aria-label="Dismiss tip">&times;</button>
+      <b>New here?</b> Enter a listing address, set the number of signs and how far out, then
+      <b>Find sign spots</b> — we'll rank the best corners and order them into one driving route.
+      Want to see it first? Tap <b>Try a sample</b>.
+    </div>
+
     <label class="fld" for="addr">Address of the listing</label>
     <div class="ac-wrap">
       <input id="addr" type="text" placeholder="Start typing an address…" autocomplete="off" />
@@ -414,7 +449,7 @@
 
     <!-- Saved addresses (full app only; hidden in the public demo) -->
     <div id="savedWrap" hidden>
-      <button type="button" id="saveAddrBtn" class="saved-btn">☆ Save this address</button>
+      <button type="button" id="saveAddrBtn" class="saved-btn">☆ Save this open house</button>
       <button type="button" id="savedToggle" class="saved-btn" aria-expanded="true" style="float:right">Saved <span id="savedCount">(0)</span></button>
       <div id="savedList" class="saved-list"></div>
     </div>
@@ -461,6 +496,12 @@
       <div class="row" style="font-size:10px;color:var(--muted);margin-top:2px" id="legendAddHint">Right-click the map to add a sign manually</div>
     </div>
   </div>
+</div>
+
+<!-- Mobile only: switch between the form/results (List) and a full-screen Map -->
+<div class="view-toggle" id="viewToggle" role="group" aria-label="Switch view">
+  <button type="button" data-view="list" class="active">List</button>
+  <button type="button" data-view="map">Map</button>
 </div>
 
 <script>
@@ -620,7 +661,7 @@ function renderSavedAddrs(){
   const list = loadSavedAddrs();
   const cnt = $('savedCount'); if(cnt) cnt.textContent = '(' + list.length + ')';
   const el = $('savedList');
-  if(!list.length){ el.innerHTML = '<div class="saved-empty">No saved addresses yet. Search an address, then “Save this address”.</div>'; return; }
+  if(!list.length){ el.innerHTML = '<div class="saved-empty">No saved open houses yet. Search an address, then “Save this open house”.</div>'; return; }
   el.innerHTML = list.map((s,i) =>
     '<div class="saved-row">' +
       '<span class="addr" data-i="'+i+'" title="Open this address">' + acEsc(s.address) + '</span>' +
@@ -657,6 +698,38 @@ function openSavedAddr(i){
     t.setAttribute('aria-expanded', String(!collapsed));
   });
   renderSavedAddrs();
+})();
+
+// ---- Onboarding tip + "Try a sample" (full app only) ----
+(function(){
+  if(DEMO) return; // demo has its own locked-listing hint
+  const ub = $('utilbar'); if(ub) ub.hidden = false;
+  let dismissed = false; try { dismissed = localStorage.getItem('sd_onboard') === '1'; } catch(e){}
+  const ob = $('onboard'); if(ob && !dismissed) ob.hidden = false;
+  const dismiss = () => { const o=$('onboard'); if(o) o.hidden = true; try { localStorage.setItem('sd_onboard','1'); } catch(e){} };
+  const ox = $('onboardX'); if(ox) ox.addEventListener('click', dismiss);
+  const sb = $('sampleBtn');
+  if(sb) sb.addEventListener('click', () => {
+    $('addr').value = '1600 Pennsylvania Avenue NW, Washington, DC 20500';
+    selectedCoord = [-77.0365, 38.8977];
+    dismiss();
+    $('go').click();
+  });
+})();
+
+// ---- Mobile List/Map toggle ----
+(function(){
+  document.body.classList.add('show-list');
+  const vt = $('viewToggle'); if(!vt) return;
+  vt.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+    const view = btn.dataset.view;
+    vt.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === btn));
+    document.body.classList.toggle('show-map', view === 'map');
+    document.body.classList.toggle('show-list', view === 'list');
+    if(view === 'map' && map){
+      setTimeout(() => { try { map.resize(); if(curHome && curOrdered.length) renderResults(true); } catch(e){} }, 60);
+    }
+  }));
 })();
 
 // ---- Address autocomplete (Mapbox Geocoding) ----

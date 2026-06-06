@@ -144,3 +144,28 @@ begin
   return new;
 end;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Storage: public "branding" bucket for brokerage logos.
+-- Owners upload a logo from the account page; the public URL is saved on the
+-- company. Public read so the app can display it; authenticated users may
+-- upload/replace files in this bucket.
+-- ---------------------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('branding', 'branding', true)
+on conflict (id) do nothing;
+
+drop policy if exists "branding public read" on storage.objects;
+create policy "branding public read"
+  on storage.objects for select
+  using (bucket_id = 'branding');
+
+drop policy if exists "branding authenticated upload" on storage.objects;
+create policy "branding authenticated upload"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'branding');
+
+drop policy if exists "branding authenticated update" on storage.objects;
+create policy "branding authenticated update"
+  on storage.objects for update to authenticated
+  using (bucket_id = 'branding');
