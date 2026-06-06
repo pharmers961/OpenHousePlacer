@@ -408,7 +408,8 @@
     body.show-map .panel{ display:none; }
     body.show-map #map{ min-height:100dvh; }
     body.show-list #map{ display:none; }
-    body.show-list .panel{ max-height:none; height:auto; }
+    body.show-list .panel{ max-height:none; height:100dvh; }
+    body.show-list .scroll{ padding-bottom:80px; } /* clear the floating List/Map toggle so directions fully scroll */
   }
 
   /* ---- Print: a clean route field sheet (hide the app chrome) ---- */
@@ -456,18 +457,18 @@
 
     <div class="gap"></div>
 
-    <label class="fld" for="count">Number of signs — <span id="countVal">10</span></label>
-    <input id="count" type="range" min="1" max="20" value="10" step="1" style="width:100%;accent-color:#0a0a0a;cursor:pointer;" />
+    <label class="fld" for="count">Number of signs — <span id="countVal">6</span></label>
+    <input id="count" type="range" min="1" max="20" value="6" step="1" style="width:100%;accent-color:#0a0a0a;cursor:pointer;" />
 
     <div class="gap"></div>
 
-    <label class="fld" for="drive">Max drive time from house — <span id="driveVal">8</span> min</label>
-    <input id="drive" type="range" min="1" max="15" value="8" step="1" style="width:100%;accent-color:#0a0a0a;cursor:pointer;" />
+    <label class="fld" for="drive">Max drive time from house — <span id="driveVal">5</span> min</label>
+    <input id="drive" type="range" min="1" max="15" value="5" step="1" style="width:100%;accent-color:#0a0a0a;cursor:pointer;" />
 
     <div class="gap"></div>
 
     <div class="cta-row">
-      <button class="go" id="go">Find <span id="goCount">10</span> sign spots</button>
+      <button class="go" id="go">Find <span id="goCount">6</span> sign spots</button>
       <button type="button" id="infoBtn" class="info-btn" aria-expanded="false" aria-controls="howMore" title="How spots are chosen">i</button>
     </div>
     <div class="disclaimer" id="howMore" hidden>
