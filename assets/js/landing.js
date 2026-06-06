@@ -7,8 +7,6 @@
  * ========================================================================= */
 (function () {
   const ADMIN_URL = 'app.html';
-  const ADMIN_CODE_HASH = 4059872811;
-  function codeHash(s){ s=String(s); let h=5381; for(let i=0;i<s.length;i++){ h=((h<<5)+h)+s.charCodeAt(i); h|=0; } return h>>>0; }
 
   const $ = (id) => document.getElementById(id);
   const modal = $('loginModal');
@@ -27,16 +25,6 @@
   // ---- Try the app: public locked demo (no account) ----
   const demoEl = $('heroDemo');
   if (demoEl) demoEl.addEventListener('click', () => { location.href = ADMIN_URL + '?demo=1'; });
-
-  // ---- Admin test: code-gated full app (owner testing) ----
-  function gotoAdmin() {
-    const code = prompt('Enter admin access code:');
-    if (code == null) return;
-    if (codeHash(code.trim()) !== ADMIN_CODE_HASH) { alert('Incorrect access code.'); return; }
-    location.href = ADMIN_URL + '?admin=' + encodeURIComponent(code.trim());
-  }
-  const navAdmin = $('navAdmin');
-  if (navAdmin) navAdmin.addEventListener('click', gotoAdmin);
 
   // ---- Sign-in modal wiring ----
   if ($('footLogin')) $('footLogin').addEventListener('click', () => openLogin(null));
