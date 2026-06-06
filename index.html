@@ -48,7 +48,14 @@
   .btn.block{ display:block; width:100%; text-align:center; }
 
   /* ---------- Hero ---------- */
-  .hero{ padding:72px 0 40px; }
+  .hero{ min-height:calc(100vh - 66px); min-height:calc(100dvh - 66px);
+    display:flex; align-items:center; padding:40px 0; position:relative; }
+  .scroll-cue{ position:absolute; left:50%; bottom:20px; transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:5px; color:var(--muted);
+    font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; text-decoration:none; }
+  .scroll-cue:hover{ color:var(--ink); }
+  .scroll-cue svg{ width:22px; height:22px; animation:cue-bounce 1.6s ease-in-out infinite; }
+  @keyframes cue-bounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(7px); } }
   .hero-grid{ display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; }
   .eyebrow{ font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
     color:var(--muted); margin-bottom:16px; }
@@ -100,9 +107,41 @@
   .feat h3{ margin:0 0 8px; font-size:17px; font-weight:700; }
   .feat p{ margin:0; color:var(--muted); font-size:14px; }
 
+  /* ---------- How-it-works animated diagram ---------- */
+  .how-anim{ max-width:640px; margin:0 auto 40px; background:#eef1ee;
+    border:1px solid var(--line); border-radius:14px; padding:14px; }
+  .how-anim svg{ display:block; width:100%; height:auto; }
+  .how-anim .route{ fill:none; stroke:var(--ink); stroke-width:2.5; stroke-linecap:round;
+    stroke-linejoin:round; stroke-dasharray:1160; stroke-dashoffset:1160;
+    animation:draw 7s ease-in-out infinite; }
+  @keyframes draw{ 0%,14%{ stroke-dashoffset:1160; } 68%,88%{ stroke-dashoffset:0; }
+    100%{ stroke-dashoffset:1160; } }
+  .how-anim .pin{ transform-box:fill-box; transform-origin:center; transform:scale(0); opacity:0;
+    animation:pop 7s ease-in-out infinite; animation-delay:var(--d,0s); }
+  @keyframes pop{ 0%{ transform:scale(0); opacity:0; } 6%{ transform:scale(1.25); opacity:1; }
+    10%,86%{ transform:scale(1); opacity:1; } 92%,100%{ transform:scale(0); opacity:0; } }
+  .how-anim .home-pulse{ transform-box:fill-box; transform-origin:center;
+    animation:home-pulse 7s ease-in-out infinite; }
+  @keyframes home-pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.12); } }
+
+  /* ---------- Scroll-reveal (only when JS is on, so no-JS still shows) ---------- */
+  .js .reveal{ opacity:0; transform:translateY(20px); transition:opacity .65s ease, transform .65s ease; }
+  .js .reveal.in{ opacity:1; transform:none; }
+  .js .features .feat.reveal:nth-child(1){ transition-delay:.05s; }
+  .js .features .feat.reveal:nth-child(2){ transition-delay:.18s; }
+  .js .features .feat.reveal:nth-child(3){ transition-delay:.31s; }
+
+  @media (prefers-reduced-motion: reduce){
+    .scroll-cue svg, .how-anim .route, .how-anim .pin, .how-anim .home-pulse{ animation:none; }
+    .how-anim .pin{ transform:none; opacity:1; }
+    .how-anim .route{ stroke-dashoffset:0; }
+    .js .reveal{ opacity:1 !important; transform:none !important; transition:none; }
+  }
+
   /* ---------- Pricing ---------- */
   #pricing{ background:var(--soft); }
-  .plans{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px; align-items:stretch; }
+  .plans{ display:grid; grid-template-columns:repeat(2,1fr); gap:22px; align-items:stretch;
+    max-width:760px; margin:0 auto; }
   .plan{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:30px 26px;
     display:flex; flex-direction:column; }
   .plan.featured{ border:2px solid var(--ink); box-shadow:0 20px 50px rgba(0,0,0,.10); }
@@ -139,13 +178,16 @@
 
   /* ---------- Responsive ---------- */
   @media (max-width:880px){
+    .hero{ min-height:auto; padding:48px 0 40px; }
+    .scroll-cue{ display:none; }
     .hero-grid{ grid-template-columns:1fr; gap:34px; }
     h1{ font-size:36px; }
     .features{ grid-template-columns:1fr; }
-    .plans{ grid-template-columns:1fr; }
+    .plans{ grid-template-columns:1fr; max-width:420px; }
     .nav-links a.link.hide-sm{ display:none; }
   }
 </style>
+<script>document.documentElement.className += ' js';</script>
 </head>
 <body>
 
@@ -212,6 +254,10 @@
     <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px;">A sample sign plan in SignDeployer</div>
     </div>
   </div>
+  <a class="scroll-cue" href="#how" aria-label="Scroll to How it works">
+    How it works
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
 </section>
 
 <!-- ===================== HOW IT WORKS ===================== -->
@@ -221,10 +267,35 @@
       <h2>How it works</h2>
       <p>From listing address to an optimized sign route in three steps.</p>
     </div>
+
+    <!-- Animated diagram: pins drop around the listing, then the driving route draws itself. -->
+    <div class="how-anim reveal" aria-hidden="true">
+      <svg viewBox="0 0 560 240" xmlns="http://www.w3.org/2000/svg">
+        <g stroke="#dcdbd6" stroke-width="2">
+          <line x1="0" y1="70" x2="560" y2="70"/>
+          <line x1="0" y1="120" x2="560" y2="120"/>
+          <line x1="0" y1="170" x2="560" y2="170"/>
+          <line x1="130" y1="0" x2="130" y2="240"/>
+          <line x1="280" y1="0" x2="280" y2="240"/>
+          <line x1="430" y1="0" x2="430" y2="240"/>
+        </g>
+        <path class="route" d="M280 120 L130 70 L430 60 L480 160 L270 195 L90 165 Z"/>
+        <g class="home-pulse">
+          <rect x="265" y="105" width="30" height="30" rx="7" fill="#0a0a0a"/>
+          <path d="M280 113 l-8 7 v9 h16 v-9 z" fill="#fff"/>
+        </g>
+        <g class="pin pin1" style="--d:.2s"><circle cx="130" cy="70" r="15" fill="#0a0a0a" stroke="#fff" stroke-width="2.5"/><text x="130" y="75" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">1</text></g>
+        <g class="pin pin2" style="--d:.7s"><circle cx="430" cy="60" r="15" fill="#0a0a0a" stroke="#fff" stroke-width="2.5"/><text x="430" y="65" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">2</text></g>
+        <g class="pin pin3" style="--d:1.2s"><circle cx="480" cy="160" r="15" fill="#0a0a0a" stroke="#fff" stroke-width="2.5"/><text x="480" y="165" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">3</text></g>
+        <g class="pin pin4" style="--d:1.7s"><circle cx="270" cy="195" r="15" fill="#0a0a0a" stroke="#fff" stroke-width="2.5"/><text x="270" y="200" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">4</text></g>
+        <g class="pin pin5" style="--d:2.2s"><circle cx="90" cy="165" r="15" fill="#0a0a0a" stroke="#fff" stroke-width="2.5"/><text x="90" y="170" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">5</text></g>
+      </svg>
+    </div>
+
     <div class="features">
-      <div class="feat"><div class="num">1</div><h3>Enter the listing</h3><p>Type the address of the home you're holding open. SignDeployer pulls the surrounding road network instantly.</p></div>
-      <div class="feat"><div class="num">2</div><h3>We analyze the routes</h3><p>It scores corners by road importance and the actual driving routes buyers take to reach the property — not random pins on a map.</p></div>
-      <div class="feat"><div class="num">3</div><h3>Get your sign plan</h3><p>See the best spots ranked and ordered into a driving route, ready to place your signs efficiently before the open house.</p></div>
+      <div class="feat reveal"><div class="num">1</div><h3>Enter the listing</h3><p>Type the address of the home you're holding open. SignDeployer pulls the surrounding road network instantly.</p></div>
+      <div class="feat reveal"><div class="num">2</div><h3>We analyze the routes</h3><p>It scores corners by road importance and the actual driving routes buyers take to reach the property — not random pins on a map.</p></div>
+      <div class="feat reveal"><div class="num">3</div><h3>Get your sign plan</h3><p>See the best spots ranked and ordered into a driving route, ready to place your signs efficiently before the open house.</p></div>
     </div>
   </div>
 </section>
@@ -234,7 +305,7 @@
   <div class="wrap">
     <div class="section-head">
       <h2>Simple, honest pricing</h2>
-      <p>Start solo or roll it out across your whole brokerage.</p>
+      <p>For individual agents and brokerages alike.</p>
     </div>
     <div class="plans">
 
@@ -251,9 +322,8 @@
         <a class="btn primary block" data-plan="agent">Get started</a>
       </div>
 
-      <div class="plan featured">
-        <span class="badge">Most popular</span>
-        <div class="tag">Small Brokerage</div>
+      <div class="plan">
+        <div class="tag">Brokerage</div>
         <div class="price">$499<small>/year</small></div>
         <div class="seats">Up to 25 agents</div>
         <ul>
@@ -263,19 +333,6 @@
           <li>Priority support</li>
         </ul>
         <a class="btn primary block" data-plan="brokerage">Get started</a>
-      </div>
-
-      <div class="plan">
-        <div class="tag">Enterprise</div>
-        <div class="price">Let's talk</div>
-        <div class="seats">For large brokerages (25+ agents)</div>
-        <ul>
-          <li>Unlimited agent seats</li>
-          <li>Custom company branding</li>
-          <li>Dedicated onboarding</li>
-          <li>Priority &amp; phone support</li>
-        </ul>
-        <a class="btn block" data-plan="enterprise">Contact sales</a>
       </div>
 
     </div>
@@ -309,6 +366,18 @@
 </div>
 
 <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+<script>
+/* Reveal sections as they scroll into view (How-it-works steps + diagram). */
+(function(){
+  var els = document.querySelectorAll('.reveal');
+  if(!els.length) return;
+  if(!('IntersectionObserver' in window)){ els.forEach(function(e){ e.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+  }, { threshold:0.2 });
+  els.forEach(function(e){ io.observe(e); });
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="assets/js/config.js"></script>
 <script src="assets/js/landing.js"></script>
