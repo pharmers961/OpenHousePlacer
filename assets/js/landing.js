@@ -13,7 +13,11 @@
   const $ = (id) => document.getElementById(id);
   const modal = $('loginModal');
 
-  // --- Admin test: prompt for the access code, then enter the app ---
+  // --- "Try the app": public, locked demo (White House). No code needed. ---
+  const demoEl = $('heroDemo');
+  if (demoEl) demoEl.addEventListener('click', () => { location.href = ADMIN_URL + '?demo=1'; });
+
+  // --- Admin test: prompt for the access code, then enter full testing ---
   // We compare a hash so the code itself isn't sitting in the page source.
   const ADMIN_CODE_HASH = 4059872811;
   function codeHash(s) { s = String(s); let h = 5381; for (let i = 0; i < s.length; i++) { h = ((h << 5) + h) + s.charCodeAt(i); h |= 0; } return h >>> 0; }
@@ -23,7 +27,7 @@
     if (codeHash(code.trim()) !== ADMIN_CODE_HASH) { alert('Incorrect access code.'); return; }
     location.href = ADMIN_URL + '?admin=' + encodeURIComponent(code.trim());
   }
-  ['navAdmin', 'heroAdmin', 'modalAdmin'].forEach((id) => {
+  ['navAdmin', 'modalAdmin'].forEach((id) => {
     const el = $(id); if (el) el.addEventListener('click', gotoAdmin);
   });
 

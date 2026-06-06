@@ -559,6 +559,33 @@ if(TOKEN_OK){
   setStatus('This tool isn’t configured yet — the Mapbox token is missing. Contact your admin.', true);
 }
 
+// ---- DEMO MODE (public "Try the app") -------------------------------------
+// Opened from the home page via app.html?demo=1. The listing is LOCKED to a
+// sample address (the White House): the address field is read-only and the
+// search ALWAYS uses the fixed coordinate — so it can't be changed even by
+// re-enabling the input in dev tools. Sign count & drive time stay adjustable.
+const DEMO = (new URLSearchParams(location.search).get('demo') === '1') ||
+             (function(){ try { return sessionStorage.getItem('sd_demo') === '1'; } catch(e){ return false; } })();
+const DEMO_ADDR  = '1600 Pennsylvania Avenue NW, Washington, DC 20500';
+const DEMO_COORD = [-77.0365, 38.8977]; // [lng, lat]
+if(DEMO){
+  try { sessionStorage.setItem('sd_demo', '1'); } catch(e){}
+  const a = $('addr');
+  if(a){
+    a.value = DEMO_ADDR;
+    a.readOnly = true; a.disabled = true; a.setAttribute('aria-disabled', 'true');
+    a.title = 'Demo listing is fixed';
+  }
+  selectedCoord = DEMO_COORD.slice();
+  const hint = $('addrHint');
+  if(hint) hint.textContent = 'Demo listing is fixed — adjust the number of signs and the drive time, then “Find sign spots”.';
+  // Center the map on the sample listing and drop its marker.
+  if(TOKEN_OK && map){
+    const showHome = () => { try { map.setCenter(DEMO_COORD); map.setZoom(14); clearMap(); addMarker(DEMO_COORD[0], DEMO_COORD[1], '⌂', true); } catch(e){} };
+    if(map.isStyleLoaded()) showHome(); else map.once('load', showHome);
+  }
+}
+
 // ---- Address autocomplete (Mapbox Geocoding) ----
 // Debounced suggestions as the user types. Verify the geocoding endpoint
 // supports autocomplete on your token; it cannot be tested here.
@@ -1175,7 +1202,12 @@ $('go').addEventListener('click', async () => {
     }
     // Use the autocomplete-picked coordinate if available; otherwise geocode.
     let home;
-    if(selectedCoord){
+    if(DEMO){
+      // Demo is hard-locked to the sample listing — ignore whatever is in the
+      // (read-only) field so it can't be changed via dev tools.
+      home = DEMO_COORD.slice();
+      $('addr').value = DEMO_ADDR;
+    } else if(selectedCoord){
       home = selectedCoord; // field already holds the full picked address
     } else {
       const g = await geocode(address, token);

@@ -31,6 +31,18 @@
     try { _admin = localStorage.getItem('sd_admin') === 'ok'; } catch (e) {}
   }
   if (_admin) { mountTestChip(); return; }
+
+  // --- Demo bypass (public "Try the app") -----------------------------------
+  // Opened from the home page via ?demo=1. Skips Supabase/paywall and runs the
+  // tool in locked demo mode (the app itself fixes the listing address). A
+  // top-right "Admin test" button stays available so the owner can switch into
+  // full testing with the code.
+  let _demo = _params.get('demo') === '1';
+  try {
+    if (_demo) sessionStorage.setItem('sd_demo', '1');
+    else if (sessionStorage.getItem('sd_demo') === '1') _demo = true;
+  } catch (e) {}
+  if (_demo) { mountDemoChip(); return; }
   // ---------------------------------------------------------------------------
 
   const gate = buildGate();
@@ -119,6 +131,23 @@
   }
 
   async function signOut() { await sb.auth.signOut(); location.href = '/'; }
+
+  // ---- demo mode chip (with an Admin test entry for the owner) ----
+  function promptAdmin() {
+    const code = prompt('Enter admin access code:');
+    if (code == null) return;
+    if (codeHash(code.trim()) !== ADMIN_CODE_HASH) { alert('Incorrect access code.'); return; }
+    try { sessionStorage.removeItem('sd_demo'); } catch (e) {}
+    location.href = 'app.html?admin=' + encodeURIComponent(code.trim());
+  }
+  function mountDemoChip() {
+    const chip = document.createElement('div');
+    chip.className = 'sd-chip';
+    chip.innerHTML = `<span>🎬 Demo</span><a class="sd-link" href="/">Home</a><button class="sd-link" id="sd-admin">Admin test</button>`;
+    document.body.appendChild(chip);
+    const b = document.getElementById('sd-admin');
+    if (b) b.addEventListener('click', promptAdmin);
+  }
 
   // ---- admin test mode chip ----
   function mountTestChip() {
