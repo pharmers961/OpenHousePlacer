@@ -274,13 +274,16 @@
 
   .navnote{ font-size:12px; line-height:1.5; color:var(--muted); margin-bottom:12px; }
   .navnote.warn{ color:#8a5a00; margin-top:14px; }
-  a.navbtn{
-    display:block; text-align:center; text-decoration:none;
-    padding:14px; background:var(--ink); color:#fff;
+  .navbtn{
+    display:block; width:100%; text-align:center; text-decoration:none;
+    padding:14px; background:var(--ink); color:#fff; cursor:pointer;
+    font-family:inherit; border:1.5px solid var(--ink);
     font-weight:600; font-size:11px; letter-spacing:2px;
     text-transform:uppercase; border-radius:2px; transition:opacity .15s;
   }
-  a.navbtn:hover{ opacity:0.82; }
+  .navbtn:hover{ opacity:0.82; }
+  /* Secondary action (Print route): outline style, sits under the primary */
+  .navbtn.secondary{ background:#fff; color:var(--ink); margin-top:10px; }
   ol.overflow{ margin:6px 0 0 18px; padding:0; }
   ol.overflow li{ margin:8px 0; font-size:13px; }
   ol.overflow a{ color:var(--ink); font-weight:500; }
@@ -361,6 +364,14 @@
     .legend-toggle{ display:flex; }
     .legend-body{ margin-top:8px; }
     .legend .row{ margin:2px 0; }
+  }
+
+  /* ---- Print: a clean route field sheet (hide the app chrome) ---- */
+  #printSheet{ display:none; }
+  @media print{
+    body{ display:block; height:auto; overflow:visible; }
+    .panel, #map, .legend{ display:none !important; }
+    #printSheet{ display:block !important; }
   }
 </style>
 </head>
@@ -498,7 +509,8 @@ function ensureMap(token){
       container:'map',
       style:'mapbox://styles/mapbox/light-v11', // clean light basemap; verify URL in current Mapbox docs
       center:[-98.5, 39.8], // continental US default until an address is set
-      zoom:3.2
+      zoom:3.2,
+      preserveDrawingBuffer:true // allows capturing the map image for the printed route sheet
     });
     map.on('error', e => {
       const msg = (e && e.error && e.error.message) ? e.error.message : 'Map failed to load.';
@@ -983,7 +995,8 @@ function renderNav(home, ordered, optimized, reason, partial){
   html += '<p class="navnote' + (optimized ? '' : ' warn') + '">' + statusLine + '</p>';
 
   html += '<a class="navbtn" href="' + url + '" target="_blank" rel="noopener">' +
-          'Open round-trip route in Google Maps (' + covered + ' sign' + (covered>1?'s':'') + ', returns to listing)</a>';
+          'Open route in Google Maps (' + covered + ' sign' + (covered>1?'s':'') + ', returns to listing)</a>';
+  html += '<button type="button" class="navbtn secondary" id="printRouteBtn">🖨 Print route</button>';
 
   if(overflow.length){
     html += '<p class="navnote warn">Google Maps fits ~9 signs per link. The ' +
@@ -996,6 +1009,53 @@ function renderNav(home, ordered, optimized, reason, partial){
     html += '</ol>';
   }
   navEl.innerHTML = html;
+  const pb = document.getElementById('printRouteBtn');
+  if(pb) pb.addEventListener('click', printRoute);
+}
+
+// Build a clean, printer-friendly route sheet (map image + ordered stops +
+// the Google Maps link) and open the browser print dialog.
+function printRoute(){
+  const sheet = document.getElementById('printSheet');
+  if(!sheet || !curHome || !curOrdered.length) return;
+  const esc = s => String(s==null?'':s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const niceClass = c => c ? c.replace(/_/g,' ') : 'road';
+
+  let mapImg = '';
+  try{
+    if(map){ const u = map.getCanvas().toDataURL('image/png');
+      if(u && u.length > 2000) mapImg = '<img alt="Route map" src="'+u+'" style="width:100%;border:1px solid #ccc;border-radius:6px;margin:12px 0;" />'; }
+  }catch(e){ /* map image optional (canvas may be unavailable) */ }
+
+  const { url } = buildGoogleMapsUrl(curHome, curOrdered);
+  const rows = curOrdered.map((s, i) => {
+    const dm = s.driveMin != null ? (Math.round(s.driveMin*10)/10) + ' min'
+             : (s.dHome != null ? Math.round(s.dHome) + ' m' : '');
+    const cls = s.manual ? 'manual placement' : niceClass(s.roadClass);
+    return '<tr>' +
+      '<td style="font-weight:700;padding:7px 10px;border-bottom:1px solid #eee;">' + (i+1) + '</td>' +
+      '<td style="padding:7px 10px;border-bottom:1px solid #eee;">' + esc(s.name) +
+        '<br><span style="color:#666;font-size:12px;text-transform:capitalize;">' + esc(cls) + '</span></td>' +
+      '<td style="padding:7px 10px;border-bottom:1px solid #eee;white-space:nowrap;">' + dm + '</td>' +
+    '</tr>';
+  }).join('');
+
+  sheet.innerHTML =
+    '<div style="font-family:Montserrat,Arial,sans-serif;color:#0a0a0a;padding:10px 4px;">' +
+      '<h1 style="font-size:20px;margin:0 0 2px;">Open House Sign Route</h1>' +
+      '<div style="color:#444;font-size:13px;margin-bottom:6px;">' + esc(($('addr')||{}).value || '') + '</div>' +
+      mapImg +
+      '<table style="width:100%;border-collapse:collapse;font-size:14px;">' +
+        '<thead><tr>' +
+          '<th style="text-align:left;padding:7px 10px;border-bottom:2px solid #0a0a0a;">#</th>' +
+          '<th style="text-align:left;padding:7px 10px;border-bottom:2px solid #0a0a0a;">Sign location</th>' +
+          '<th style="text-align:left;padding:7px 10px;border-bottom:2px solid #0a0a0a;">Drive</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody>' +
+      '</table>' +
+      '<div style="margin-top:10px;font-size:11px;color:#666;word-break:break-all;">Google Maps route: ' + url + '</div>' +
+      '<div style="margin-top:4px;font-size:10px;color:#999;">Generated by SignDeployer</div>' +
+    '</div>';
+  window.print();
 }
 
 
@@ -1163,6 +1223,9 @@ $('go').addEventListener('click', async () => {
   }
 });
 </script>
+
+<!-- Printable route field sheet (populated on demand; shown only when printing) -->
+<div id="printSheet"></div>
 
 <!-- This is the gated app. The guard requires an active subscription;
      anyone not signed in / not subscribed is sent back to the landing page. -->
