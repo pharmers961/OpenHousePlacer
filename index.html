@@ -10,8 +10,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#0a0a0a; --muted:#6b6b6b; --line:#e8e8e8; --bg:#ffffff;
-    --soft:#f6f6f4; --accent:#0a0a0a;
+    --ink:#102a43; --muted:#5a6b7b; --line:#dde6ef; --bg:#ffffff;
+    --soft:#f4f7fb; --accent:#2c7be5; --accent-soft:#486581;
   }
   *{ box-sizing:border-box; }
   html{ scroll-behavior:smooth; }
@@ -43,7 +43,8 @@
     color:var(--ink); font:inherit; font-weight:600; font-size:12px; letter-spacing:1px;
     text-transform:uppercase; padding:11px 18px; border-radius:4px; transition:opacity .15s; }
   .btn:hover{ opacity:.82; }
-  .btn.primary{ background:var(--ink); color:#fff; }
+  .btn.primary{ background:linear-gradient(180deg,#1b3b5f 0%,#102a43 100%); color:#fff; border-color:#102a43; }
+  .btn.primary:hover{ opacity:1; box-shadow:0 6px 18px rgba(16,42,67,0.28); }
   .btn.lg{ padding:15px 26px; font-size:13px; }
   .btn.block{ display:block; width:100%; text-align:center; }
 
@@ -60,7 +61,7 @@
   .eyebrow{ font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
     color:var(--muted); margin-bottom:16px; }
   h1{ font-size:46px; line-height:1.08; font-weight:800; letter-spacing:-1px; margin:0 0 18px; }
-  .hero p.sub{ font-size:18px; color:#3a3a3a; margin:0 0 28px; max-width:520px; }
+  .hero p.sub{ font-size:18px; color:var(--accent-soft); margin:0 0 28px; max-width:520px; }
   .hero-cta{ display:flex; gap:12px; flex-wrap:wrap; }
   .trust{ margin-top:18px; font-size:12.5px; color:var(--muted); }
 
@@ -91,7 +92,7 @@
   .mock .pin{ position:absolute; width:22px; height:22px; border-radius:50%; background:var(--ink);
     border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,.3); color:#fff; font-size:10px;
     font-weight:700; display:flex; align-items:center; justify-content:center; }
-  .mock .home{ position:absolute; width:30px; height:30px; border-radius:7px; background:#0a0a0a;
+  .mock .home{ position:absolute; width:30px; height:30px; border-radius:7px; background:#102a43;
     border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.35); }
 
   /* ---------- Sections ---------- */
@@ -178,8 +179,11 @@
   .modal .body{ padding:24px; }
   .modal h3{ margin:0 0 6px; font-size:18px; }
   .modal p{ margin:4px 0 14px; color:var(--muted); font-size:13.5px; }
-  .modal input{ width:100%; padding:13px; border:1px solid #ddd; border-radius:6px; font:inherit;
-    margin-bottom:10px; box-sizing:border-box; }
+  .modal input, .modal select{ width:100%; padding:13px; border:1px solid #ddd; border-radius:6px; font:inherit;
+    margin-bottom:10px; box-sizing:border-box; background:#fff; color:var(--ink); }
+  .modal input[readonly]{ background:#f4f7fb; color:var(--muted); }
+  .modal .field-label{ font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+    color:var(--muted); margin:2px 0 6px; }
   .modal .close{ float:right; cursor:pointer; color:#999; background:none; border:none; font-size:20px;
     line-height:1; }
 
@@ -202,7 +206,7 @@
 <header class="nav">
   <div class="wrap nav-inner">
     <a class="brand" href="/">
-      <span class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="#fff"/><circle cx="12" cy="9" r="2.4" fill="#0a0a0a"/></svg></span>
+      <span class="mark"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="#fff"/><circle cx="12" cy="9" r="2.4" fill="#102a43"/></svg></span>
       SignDeployer
     </a>
     <nav class="nav-links">
@@ -288,14 +292,14 @@
         </g>
         <path class="route" d="M280 120 L130 70 L430 60 L480 160 L270 195 L90 165 Z"/>
         <g class="home-pulse">
-          <rect x="265" y="105" width="30" height="30" rx="7" fill="#0a0a0a"/>
+          <rect x="265" y="105" width="30" height="30" rx="7" fill="#102a43"/>
           <path d="M280 113 l-8 7 v9 h16 v-9 z" fill="#fff"/>
         </g>
-        <g class="pin pin1" style="--d:.2s"><circle cx="130" cy="70" r="15" fill="#0a0a0a" stroke="#fff" stroke-width="2.5"/><text x="130" y="75" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">1</text></g>
-        <g class="pin pin2" style="--d:.7s"><circle cx="430" cy="60" r="15" fill="#0a0a0a" stroke="#fff" stroke-width="2.5"/><text x="430" y="65" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">2</text></g>
-        <g class="pin pin3" style="--d:1.2s"><circle cx="480" cy="160" r="15" fill="#0a0a0a" stroke="#fff" stroke-width="2.5"/><text x="480" y="165" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">3</text></g>
-        <g class="pin pin4" style="--d:1.7s"><circle cx="270" cy="195" r="15" fill="#0a0a0a" stroke="#fff" stroke-width="2.5"/><text x="270" y="200" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">4</text></g>
-        <g class="pin pin5" style="--d:2.2s"><circle cx="90" cy="165" r="15" fill="#0a0a0a" stroke="#fff" stroke-width="2.5"/><text x="90" y="170" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">5</text></g>
+        <g class="pin pin1" style="--d:.2s"><circle cx="130" cy="70" r="15" fill="#102a43" stroke="#fff" stroke-width="2.5"/><text x="130" y="75" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">1</text></g>
+        <g class="pin pin2" style="--d:.7s"><circle cx="430" cy="60" r="15" fill="#102a43" stroke="#fff" stroke-width="2.5"/><text x="430" y="65" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">2</text></g>
+        <g class="pin pin3" style="--d:1.2s"><circle cx="480" cy="160" r="15" fill="#102a43" stroke="#fff" stroke-width="2.5"/><text x="480" y="165" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">3</text></g>
+        <g class="pin pin4" style="--d:1.7s"><circle cx="270" cy="195" r="15" fill="#102a43" stroke="#fff" stroke-width="2.5"/><text x="270" y="200" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">4</text></g>
+        <g class="pin pin5" style="--d:2.2s"><circle cx="90" cy="165" r="15" fill="#102a43" stroke="#fff" stroke-width="2.5"/><text x="90" y="170" fill="#fff" font-size="14" font-weight="700" text-anchor="middle" font-family="Montserrat,sans-serif">5</text></g>
       </svg>
     </div>
 
@@ -383,6 +387,19 @@
       <h3 id="modalTitle">Sign in</h3>
       <p id="modalSub">Enter your email and we'll send you a secure sign-in link.</p>
       <form id="loginForm">
+        <div id="bizFields" style="display:none">
+          <input id="bizName" type="text" placeholder="Company / brokerage name" autocomplete="organization" />
+          <input id="bizContact" type="text" placeholder="Your full name" autocomplete="name" />
+          <input id="bizPhone" type="tel" placeholder="Phone number" autocomplete="tel" />
+          <select id="bizTeam">
+            <option value="">Approx. team size…</option>
+            <option>1–5 agents</option>
+            <option>6–10 agents</option>
+            <option>11–25 agents</option>
+            <option>26–50 agents</option>
+            <option>50+ agents</option>
+          </select>
+        </div>
         <input id="loginEmail" type="email" required placeholder="you@brokerage.com" autocomplete="email" />
         <button class="btn primary block" type="submit" id="loginSubmit">Email me a link</button>
       </form>

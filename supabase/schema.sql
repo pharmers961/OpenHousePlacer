@@ -9,9 +9,14 @@
 create table if not exists public.companies (
   id                  uuid primary key default gen_random_uuid(),
   name                text not null,
+  -- Brokerage contact details collected at signup (so you know who bought):
+  contact_name        text,
+  contact_email       text,
+  contact_phone       text,
+  team_size           text,
   -- Enterprise branding (replaces the default SignDeployer/Luxe look):
   logo_url            text,
-  brand_color         text default '#0a0a0a',
+  brand_color         text default '#102a43',
   -- Billing:
   owner_id            uuid references auth.users(id),
   stripe_customer_id  text,
@@ -19,6 +24,12 @@ create table if not exists public.companies (
   current_period_end  timestamptz,
   created_at          timestamptz not null default now()
 );
+
+-- Safe to re-run: add the signup contact columns to an existing companies table.
+alter table public.companies add column if not exists contact_name  text;
+alter table public.companies add column if not exists contact_email text;
+alter table public.companies add column if not exists contact_phone text;
+alter table public.companies add column if not exists team_size     text;
 
 -- ---------------------------------------------------------------------------
 -- profiles: one row per signed-up user (a real-estate agent)

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root{ --ink:#0a0a0a; --muted:#5f5d58; --line:#e6e4e0; --soft:#f6f6f4; --danger:#b00020; }
+  :root{ --ink:#102a43; --muted:#5a6b7b; --line:#dde6ef; --soft:#f4f7fb; --danger:#b00020; }
   *{ box-sizing:border-box; }
   body{ margin:0; font-family:"Montserrat",system-ui,sans-serif; color:var(--ink); background:var(--soft); line-height:1.55; }
   .top{ background:#fff; border-bottom:1px solid var(--line); }
@@ -19,7 +19,7 @@
   .btn{ display:inline-block; cursor:pointer; border:1px solid var(--ink); background:#fff; color:var(--ink);
     font:inherit; font-weight:600; font-size:12px; letter-spacing:1px; text-transform:uppercase; padding:10px 16px;
     border-radius:4px; transition:opacity .15s; text-decoration:none; }
-  .btn:hover{ opacity:.85; } .btn.primary{ background:var(--ink); color:#fff; } .btn:disabled{ opacity:.5; cursor:progress; }
+  .btn:hover{ opacity:.85; } .btn.primary{ background:linear-gradient(180deg,#1b3b5f 0%,#102a43 100%); color:#fff; } .btn:disabled{ opacity:.5; cursor:progress; }
   main{ max-width:820px; margin:0 auto; padding:34px 24px 70px; }
   h1{ font-size:28px; margin:0 0 22px; letter-spacing:-.5px; }
   .card{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:24px; margin-bottom:18px; }
@@ -52,7 +52,7 @@
 </head>
 <body>
 <div class="top"><div class="wrap">
-  <a class="brand" href="/" aria-label="SignDeployer home"><span class="mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="#fff"/><circle cx="12" cy="9" r="2.4" fill="#0a0a0a"/></svg></span> SignDeployer</a>
+  <a class="brand" href="/" aria-label="SignDeployer home"><span class="mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="#fff"/><circle cx="12" cy="9" r="2.4" fill="#102a43"/></svg></span> SignDeployer</a>
   <div><a class="btn primary" id="openApp" href="/app.html">Open app</a></div>
 </div></div>
 
@@ -114,8 +114,8 @@
     <div class="field">
       <label for="brColor">Brand color</label>
       <div class="colorrow">
-        <input id="brColor" type="color" value="#0a0a0a" aria-label="Brand color picker" />
-        <input id="brColorHex" type="text" value="#0a0a0a" style="width:120px;padding:10px;border:1px solid var(--line);border-radius:6px;font:inherit" />
+        <input id="brColor" type="color" value="#102a43" aria-label="Brand color picker" />
+        <input id="brColorHex" type="text" value="#102a43" style="width:120px;padding:10px;border:1px solid var(--line);border-radius:6px;font:inherit" />
       </div>
     </div>
     <div class="actions">

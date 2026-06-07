@@ -50,7 +50,7 @@ export default async (req) => {
         if (typeof b.name === 'string') upd.name = (b.name.trim().slice(0, 80)) || 'My Company';
         if (typeof b.brand_color === 'string' && b.brand_color.trim()) {
           const c = b.brand_color.trim();
-          if (!/^#?[0-9a-fA-F]{6}$/.test(c)) return json({ error: 'Brand color must be a 6-digit hex, e.g. #0a0a0a.' }, 400);
+          if (!/^#?[0-9a-fA-F]{6}$/.test(c)) return json({ error: 'Brand color must be a 6-digit hex, e.g. #102a43.' }, 400);
           upd.brand_color = c[0] === '#' ? c : ('#' + c);
         }
         if (typeof b.logo_url === 'string') {

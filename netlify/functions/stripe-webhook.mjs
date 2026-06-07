@@ -82,6 +82,10 @@ async function applySubscription(db, subInput) {
         .from('companies')
         .insert({
           name: meta.company_name || 'My Company',
+          contact_name: meta.contact_name || null,
+          contact_email: meta.contact_email || null,
+          contact_phone: meta.contact_phone || null,
+          team_size: meta.team_size || null,
           owner_id: userId || null,
           stripe_customer_id: sub.customer,
           subscription_status: status,
@@ -91,17 +95,21 @@ async function applySubscription(db, subInput) {
         .single();
       company = created;
     } else {
-      await db
-        .from('companies')
-        .update({ subscription_status: status, current_period_end: periodEnd })
-        .eq('id', company.id);
+      // Refresh billing state, and fill in any contact details newly provided
+      // (e.g. on a re-checkout/upgrade) without wiping existing ones.
+      const upd = { subscription_status: status, current_period_end: periodEnd };
+      if (meta.company_name) upd.name = meta.company_name;
+      if (meta.contact_name) upd.contact_name = meta.contact_name;
+      if (meta.contact_email) upd.contact_email = meta.contact_email;
+      if (meta.contact_phone) upd.contact_phone = meta.contact_phone;
+      if (meta.team_size) upd.team_size = meta.team_size;
+      await db.from('companies').update(upd).eq('id', company.id);
     }
 
     if (userId && company) {
-      await db
-        .from('profiles')
-        .update({ plan, company_id: company.id, company_role: 'owner', subscription_status: status, current_period_end: periodEnd })
-        .eq('id', userId);
+      const profUpd = { plan, company_id: company.id, company_role: 'owner', subscription_status: status, current_period_end: periodEnd };
+      if (meta.contact_name) profUpd.full_name = meta.contact_name;
+      await db.from('profiles').update(profUpd).eq('id', userId);
     }
 
     // Upgrade cleanup: if this owner was previously on an individual plan, cancel
