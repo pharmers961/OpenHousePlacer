@@ -143,7 +143,7 @@
     .sd-gate{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;
       justify-content:center;background:#fff;font-family:'Montserrat',system-ui,sans-serif;gap:6px;}
     .sd-gate-msg{color:#666;font-size:13px;}
-    .sd-spin{width:30px;height:30px;border:3px solid #eee;border-top-color:#0a0a0a;border-radius:50%;
+    .sd-spin{width:30px;height:30px;border:3px solid #eee;border-top-color:#102a43;border-radius:50%;
       animation:sd-rot .8s linear infinite;}
     @keyframes sd-rot{to{transform:rotate(360deg)}}
     .sd-chip{position:fixed;top:12px;right:12px;z-index:9998;background:rgba(255,255,255,.96);

@@ -11,7 +11,7 @@ create table if not exists public.companies (
   name                text not null,
   -- Enterprise branding (replaces the default SignDeployer/Luxe look):
   logo_url            text,
-  brand_color         text default '#0a0a0a',
+  brand_color         text default '#102a43',
   -- Billing:
   owner_id            uuid references auth.users(id),
   stripe_customer_id  text,
