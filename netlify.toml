@@ -20,3 +20,11 @@
 
 [functions]
   node_bundler = "esbuild"
+
+# Keep internal sales/outreach material (lead lists, GTM plan) from being served
+# publicly even though the site publishes the repo root.
+[[redirects]]
+  from = "/outreach/*"
+  to = "/"
+  status = 404
+  force = true
