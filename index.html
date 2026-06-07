@@ -179,8 +179,11 @@
   .modal .body{ padding:24px; }
   .modal h3{ margin:0 0 6px; font-size:18px; }
   .modal p{ margin:4px 0 14px; color:var(--muted); font-size:13.5px; }
-  .modal input{ width:100%; padding:13px; border:1px solid #ddd; border-radius:6px; font:inherit;
-    margin-bottom:10px; box-sizing:border-box; }
+  .modal input, .modal select{ width:100%; padding:13px; border:1px solid #ddd; border-radius:6px; font:inherit;
+    margin-bottom:10px; box-sizing:border-box; background:#fff; color:var(--ink); }
+  .modal input[readonly]{ background:#f4f7fb; color:var(--muted); }
+  .modal .field-label{ font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+    color:var(--muted); margin:2px 0 6px; }
   .modal .close{ float:right; cursor:pointer; color:#999; background:none; border:none; font-size:20px;
     line-height:1; }
 
@@ -384,6 +387,19 @@
       <h3 id="modalTitle">Sign in</h3>
       <p id="modalSub">Enter your email and we'll send you a secure sign-in link.</p>
       <form id="loginForm">
+        <div id="bizFields" style="display:none">
+          <input id="bizName" type="text" placeholder="Company / brokerage name" autocomplete="organization" />
+          <input id="bizContact" type="text" placeholder="Your full name" autocomplete="name" />
+          <input id="bizPhone" type="tel" placeholder="Phone number" autocomplete="tel" />
+          <select id="bizTeam">
+            <option value="">Approx. team size…</option>
+            <option>1–5 agents</option>
+            <option>6–10 agents</option>
+            <option>11–25 agents</option>
+            <option>26–50 agents</option>
+            <option>50+ agents</option>
+          </select>
+        </div>
         <input id="loginEmail" type="email" required placeholder="you@brokerage.com" autocomplete="email" />
         <button class="btn primary block" type="submit" id="loginSubmit">Email me a link</button>
       </form>

@@ -69,7 +69,13 @@
     const plan = new URLSearchParams(location.search).get('plan');
     if (state.user && plan) {
       history.replaceState({}, '', location.pathname);
-      return startCheckout(plan);
+      let extras = null;
+      try {
+        const raw = localStorage.getItem('sd_biz_info');
+        if (raw) extras = JSON.parse(raw);
+        localStorage.removeItem('sd_biz_info');
+      } catch (_) {}
+      return startCheckout(plan, extras);
     }
     sb.auth.onAuthStateChange(async (_e, session) => { await refresh(session?.user || null); });
   }
@@ -116,17 +122,28 @@
       // agent button → straight into the app.
       return (location.href = plan === 'brokerage' ? '/account.html' : '/app.html');
     }
+    // Brokerage: always open the modal first so we can collect the company
+    // details (name, contact, phone, team size) — even if they're already
+    // signed in.
+    if (plan === 'brokerage') return openLogin(plan);
     if (state.user) return startCheckout(plan);
     openLogin(plan); // must sign in first; we resume checkout afterward
   }
 
-  async function startCheckout(plan) {
+  async function startCheckout(plan, extras) {
     try {
       const token = (await sb.auth.getSession()).data.session?.access_token;
+      const body = { plan };
+      if (extras) {
+        body.companyName = extras.companyName || '';
+        body.contactName = extras.contactName || '';
+        body.contactPhone = extras.contactPhone || '';
+        body.teamSize = extras.teamSize || '';
+      }
       const r = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify(body),
       });
       const data = await r.json();
       if (data.url) location.href = data.url;
@@ -139,13 +156,41 @@
   // ---- login modal ----
   function openLogin(planToResume) {
     intendedPlan = planToResume;
-    $('modalTitle').textContent = planToResume ? 'Sign in to continue' : 'Sign in';
-    $('modalSub').textContent = planToResume
-      ? "Enter your email — we'll send a secure link, then take you to checkout."
-      : "Enter your email and we'll send you a secure sign-in link.";
+    const isBiz = planToResume === 'brokerage';
+    const signedIn = !!state.user;
+
+    // Show + require the brokerage detail fields only for the Brokerage plan.
+    const biz = $('bizFields');
+    if (biz) biz.style.display = isBiz ? 'block' : 'none';
+    ['bizName', 'bizContact', 'bizPhone', 'bizTeam'].forEach((id) => {
+      const el = $(id); if (el) el.required = isBiz;
+    });
+
+    $('modalTitle').textContent = isBiz
+      ? 'Set up your brokerage'
+      : planToResume ? 'Sign in to continue' : 'Sign in';
+    $('modalSub').textContent = isBiz
+      ? "Tell us about your brokerage — we'll create your team account and take you to checkout."
+      : planToResume
+        ? "Enter your email — we'll send a secure link, then take you to checkout."
+        : "Enter your email and we'll send you a secure sign-in link.";
+
+    // If we already know who they are, prefill + lock the email.
+    const emailEl = $('loginEmail');
+    if (emailEl) {
+      if (signedIn && state.user.email) { emailEl.value = state.user.email; emailEl.readOnly = true; }
+      else { emailEl.readOnly = false; }
+    }
+    const submit = $('loginSubmit');
+    if (submit) {
+      submit.textContent = (isBiz && signedIn)
+        ? 'Continue to checkout'
+        : isBiz ? 'Continue' : 'Email me a link';
+    }
+
     $('loginMsg').textContent = '';
     if (modal) modal.style.display = 'flex';
-    setTimeout(() => { const el = $('loginEmail'); if (el) el.focus(); }, 50);
+    setTimeout(() => { const el = isBiz ? $('bizName') : $('loginEmail'); if (el) el.focus(); }, 50);
   }
   function closeLogin() { if (modal) modal.style.display = 'none'; }
 
@@ -155,8 +200,35 @@
     if (!sb) { msg.textContent = 'Sign-in is not configured yet (Supabase keys missing).'; return; }
     const email = $('loginEmail').value.trim();
     const btn = $('loginSubmit');
+
+    // Collect brokerage details (when buying a Brokerage plan) to carry into
+    // checkout → the webhook → the company record.
+    let bizInfo = null;
+    if (intendedPlan === 'brokerage') {
+      bizInfo = {
+        companyName: ($('bizName').value || '').trim(),
+        contactName: ($('bizContact').value || '').trim(),
+        contactPhone: ($('bizPhone').value || '').trim(),
+        teamSize: ($('bizTeam').value || '').trim(),
+      };
+      if (!bizInfo.companyName) { msg.textContent = 'Please enter your company name.'; return; }
+    }
+
+    // Already signed in and buying Brokerage → straight to checkout, no link.
+    if (state.user && intendedPlan === 'brokerage') {
+      if (btn) btn.disabled = true;
+      msg.textContent = 'Starting checkout…';
+      return startCheckout('brokerage', bizInfo);
+    }
+
     if (btn) btn.disabled = true;
     msg.textContent = 'Sending…';
+    // Persist brokerage details across the magic-link redirect so we still have
+    // them when we resume checkout on return.
+    try {
+      if (bizInfo) localStorage.setItem('sd_biz_info', JSON.stringify(bizInfo));
+      else localStorage.removeItem('sd_biz_info');
+    } catch (_) {}
     // Resuming a purchase? Return to the landing with ?plan=… so we launch
     // checkout. Otherwise go straight to the app.
     const redirect = intendedPlan
