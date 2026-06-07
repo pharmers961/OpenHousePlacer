@@ -60,9 +60,26 @@ async function applySubscription(db, subInput) {
   let sub = subInput;
   try { if (subInput?.id) sub = await stripe.subscriptions.retrieve(subInput.id); } catch (_) { /* fall back to event payload */ }
   const meta = sub.metadata || {};
-  const userId = meta.supabase_user_id;
+  let userId = meta.supabase_user_id;
   const plan = meta.plan || 'agent';
   const status = sub.status; // active | trialing | past_due | canceled | ...
+
+  // Self-heal: if the subscription has no supabase_user_id (e.g. it was created
+  // outside our checkout, or the metadata was lost), fall back to matching the
+  // Stripe customer's email to a profile. Without this, a real payment can land
+  // with no user attached and the buyer gets locked out despite paying.
+  if (!userId) {
+    try {
+      const cust = await stripe.customers.retrieve(sub.customer);
+      const email = cust && !cust.deleted ? cust.email : null;
+      if (email) {
+        const { data: prof } = await db
+          .from('profiles').select('id').ilike('email', email).maybeSingle();
+        if (prof?.id) userId = prof.id;
+      }
+    } catch (e) { console.error('Webhook: email fallback failed:', e.message); }
+  }
+
   // current_period_end lives on the subscription in older Stripe API versions
   // and on the subscription ITEM in newer ones — read whichever is present.
   const rawEnd = sub.current_period_end || sub.items?.data?.[0]?.current_period_end || null;
@@ -98,6 +115,7 @@ async function applySubscription(db, subInput) {
       // Refresh billing state, and fill in any contact details newly provided
       // (e.g. on a re-checkout/upgrade) without wiping existing ones.
       const upd = { subscription_status: status, current_period_end: periodEnd };
+      if (userId) upd.owner_id = userId; // backfill owner if an earlier run couldn't link it
       if (meta.company_name) upd.name = meta.company_name;
       if (meta.contact_name) upd.contact_name = meta.contact_name;
       if (meta.contact_email) upd.contact_email = meta.contact_email;
