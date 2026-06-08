@@ -105,12 +105,12 @@
       if (logo) logo.alt = company.name;
     }
     if (company.brand_color) {
-      // The brand color drives the WHOLE app theme (sidebar, buttons, markers,
-      // accents) — not just text. --ink is the base; --ink-2 is a lighter shade
-      // used as the top of the gradients, derived so any brand color works.
-      const ink = company.brand_color;
-      document.documentElement.style.setProperty('--ink', ink);
-      document.documentElement.style.setProperty('--ink-2', lighten(ink, 0.22));
+      // The brand color drives the app SURFACES (sidebar, buttons, markers,
+      // accents) via --brand. Text stays dark (--ink) for readability, so a
+      // company color only repaints the chrome — not the body copy.
+      const brand = company.brand_color;
+      document.documentElement.style.setProperty('--brand', brand);
+      document.documentElement.style.setProperty('--brand-2', lighten(brand, 0.22));
     }
   }
 
