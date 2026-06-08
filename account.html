@@ -275,7 +275,9 @@
       $('inviteBtn').disabled = false;
       if(res.error){ teamMsg(res.error,'err'); return; }
       $('inviteEmail').value = '';
-      teamMsg(res.attached ? 'Agent added to your team.' : 'Invited — they join automatically when they sign in with that email.','ok');
+      teamMsg(res.emailed
+        ? 'Invitation emailed — they’ll get a link to join your team.'
+        : 'Invited — they join automatically when they sign in with that email.','ok');
       render(res);
     });
   }
