@@ -17,6 +17,7 @@
 <style>
   :root{
     --ink:#102a43;        /* deep navy brand primary (overridable per company) */
+    --ink-2:#1b3b5f;      /* lighter shade of the brand, for gradients (set with --ink) */
     --paper:#ffffff;      /* light interface */
     --soft:#f4f7fb;       /* subtle cool panel fill */
     --accent:#2c7be5;     /* vivid brand blue for accents/highlights */
@@ -54,7 +55,7 @@
   /* Black brand band with the white logo, echoing the site's dark sections */
   .brand{
     padding:28px 26px 24px;
-    background:linear-gradient(160deg,#1b3b5f 0%,#102a43 100%);
+    background:linear-gradient(160deg,var(--ink-2) 0%,var(--ink) 100%);
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -170,7 +171,7 @@
     width:100%;
     padding:15px;
     border:none;
-    background:linear-gradient(180deg,#1b3b5f 0%,#102a43 100%);
+    background:linear-gradient(180deg,var(--ink-2) 0%,var(--ink) 100%);
     color:#fff;
     font-family:inherit;
     font-weight:600;
@@ -181,7 +182,7 @@
     border-radius:2px;
     transition:background .15s, transform .05s, box-shadow .15s;
   }
-  button.go:hover{ background:linear-gradient(180deg,#24507f 0%,#163b5f 100%); box-shadow:0 6px 18px rgba(16,42,67,0.28); }
+  button.go:hover{ filter:brightness(1.12); box-shadow:0 6px 18px rgba(16,42,67,0.28); }
   button.go:active{ transform:translateY(1px); }
   button.go:disabled{ background:#aebece; cursor:not-allowed; box-shadow:none; }
   /* Visible focus rings for keyboard users (a11y) */
@@ -337,7 +338,7 @@
   .legend .dot{ width:11px;height:11px;border-radius:50%; }
   /* Square mark used both as the listing marker and in the legend */
   .legend .home-ico{
-    width:15px;height:15px;background:#102a43;border-radius:3px;
+    width:15px;height:15px;background:var(--ink);border-radius:3px;
     display:flex;align-items:center;justify-content:center;flex:0 0 15px;
   }
   .legend .home-ico svg{ width:11px;height:11px; }
@@ -353,7 +354,7 @@
   .marker span{ color:#fff; font-size:12px; font-weight:600; }
   /* The listing renders as a dark square tile with a white house mark */
   .marker.home{
-    width:40px;height:40px;background:#102a43;border:2px solid #fff;
+    width:40px;height:40px;background:var(--ink);border:2px solid #fff;
     border-radius:7px;
   }
   .marker.home svg{ width:24px;height:24px; }
@@ -450,12 +451,12 @@
     <div class="gap"></div>
 
     <label class="fld" for="count">Number of signs — <span id="countVal">6</span></label>
-    <input id="count" type="range" min="1" max="20" value="6" step="1" style="width:100%;accent-color:#102a43;cursor:pointer;" />
+    <input id="count" type="range" min="1" max="20" value="6" step="1" style="width:100%;accent-color:var(--ink);cursor:pointer;" />
 
     <div class="gap"></div>
 
     <label class="fld" for="drive">Max drive time from house — <span id="driveVal">5</span> min</label>
-    <input id="drive" type="range" min="1" max="15" value="5" step="1" style="width:100%;accent-color:#102a43;cursor:pointer;" />
+    <input id="drive" type="range" min="1" max="15" value="5" step="1" style="width:100%;accent-color:var(--ink);cursor:pointer;" />
 
     <div class="gap"></div>
 
@@ -484,7 +485,7 @@
     </button>
     <div class="legend-body" id="legendBody">
       <div class="row"><span class="home-ico" id="legendHomeIco"></span> The listing</div>
-      <div class="row"><span class="dot" style="background:#102a43"></span> Sign spot (ordered for driving)</div>
+      <div class="row"><span class="dot" style="background:var(--ink)"></span> Sign spot (ordered for driving)</div>
       <div class="row"><span class="dot" style="background:#b00020"></span> Manually placed sign</div>
       <div class="row" style="font-size:10px;color:var(--muted);margin-top:2px" id="legendAddHint">Right-click the map to add a sign manually</div>
     </div>
