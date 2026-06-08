@@ -6,7 +6,7 @@
 //
 // A member who already has an account is attached immediately; an unknown email
 // becomes a pending invite that handle_new_user() consumes when they sign up.
-import { adminDb, getUser, json } from './lib/helpers.mjs';
+import { adminDb, getUser, appUrl, json } from './lib/helpers.mjs';
 
 const BROKERAGE_CAP = 50;       // Brokerage plan seats
 const ENTERPRISE_CAP = 100000;  // effectively unlimited
@@ -87,7 +87,20 @@ export default async (req) => {
 
       await db.from('company_invites')
         .upsert({ company_id: companyId, email, invited_by: user.id }, { onConflict: 'company_id,email' });
-      return json({ ok: true, invited: true, ...(await snapshot()) });
+
+      // Email the agent an invitation. inviteUserByEmail creates their account
+      // and sends the email; the handle_new_user trigger then attaches them to
+      // this company using the pending invite above. If they ALREADY have an
+      // account, this call errors — that's fine: they'll be attached by
+      // /api/accept-invite the next time they sign in.
+      let emailed = false;
+      try {
+        const base = appUrl(req);
+        const { error: invErr } = await db.auth.admin.inviteUserByEmail(email, { redirectTo: `${base}/app.html` });
+        emailed = !invErr;
+      } catch (_) { /* fall back to the consent-based attach on next sign-in */ }
+
+      return json({ ok: true, invited: true, emailed, ...(await snapshot()) });
     }
 
     if (req.method === 'DELETE') {
