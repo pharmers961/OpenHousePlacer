@@ -4,7 +4,7 @@
 // active subscription and, if so, repair the database so they get access.
 // Stripe is the source of truth; this means a webhook failing or never firing
 // can no longer leave a paying customer locked out.
-import { stripe, adminDb, getUser, json } from './lib/helpers.mjs';
+import { stripe, adminDb, getUser, json, rateLimit, tooManyRequests } from './lib/helpers.mjs';
 import { applySubscription } from './lib/subscriptions.mjs';
 
 const ACTIVE = ['active', 'trialing'];
@@ -16,6 +16,15 @@ export default async (req) => {
   if (!user) return json({ error: 'Not signed in' }, 401);
 
   const db = adminDb();
+
+  // Each call fans out to the Stripe API (customers.list + subscriptions.list),
+  // and the app gate triggers this automatically when a user looks unpaid, so
+  // it's the hottest path here. Throttle per user so spamming it can't burn
+  // through our account-wide Stripe rate budget and starve real traffic. The
+  // window is generous enough for the legitimate "I just paid, let me in" retry.
+  if (!(await rateLimit(db, user.id, 'reconcile', { max: 8, windowSec: 60 })))
+    return tooManyRequests('Still checking your subscription — please wait a moment and refresh.');
+
   try {
     const { data: profile } = await db
       .from('profiles').select('stripe_customer_id, company_id').eq('id', user.id).maybeSingle();

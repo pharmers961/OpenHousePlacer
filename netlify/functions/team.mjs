@@ -6,7 +6,7 @@
 //
 // A member who already has an account is attached immediately; an unknown email
 // becomes a pending invite that handle_new_user() consumes when they sign up.
-import { adminDb, getUser, appUrl, json } from './lib/helpers.mjs';
+import { adminDb, getUser, appUrl, json, rateLimit, tooManyRequests } from './lib/helpers.mjs';
 
 const BROKERAGE_CAP = 50;       // Brokerage plan seats
 const ENTERPRISE_CAP = 100000;  // effectively unlimited
@@ -69,6 +69,12 @@ export default async (req) => {
       // account just because an owner typed their email.
       const email = String(body.email || '').trim().toLowerCase();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: 'Enter a valid email address.' }, 400);
+
+      // This path sends an email (inviteUserByEmail) and probes the profiles
+      // table by email — the most abusable endpoint we have. Cap invites per
+      // owner so a single account can't blast emails or enumerate addresses.
+      if (!(await rateLimit(db, user.id, 'invite', { max: 15, windowSec: 3600 })))
+        return tooManyRequests('Too many invites in a short time. Please wait a bit before inviting more agents.');
 
       const snap = await snapshot();
       if (snap.seats.used >= snap.seats.cap)

@@ -204,3 +204,61 @@ create policy "branding authenticated update"
       select company_id::text from public.profiles where id = auth.uid()
     )
   );
+
+-- ---------------------------------------------------------------------------
+-- rate_limits: per-user, per-endpoint throttling for the serverless functions.
+--
+-- The Netlify Functions are stateless (no shared memory between invocations),
+-- so an in-process counter would reset on every cold start. We keep one row per
+-- (user, bucket) here and reset it once the fixed window elapses. Writes happen
+-- ONLY via check_rate_limit() below using the service-role key, so RLS stays on
+-- with no policies (clients can neither read nor forge their own counters).
+-- ---------------------------------------------------------------------------
+create table if not exists public.rate_limits (
+  user_id      uuid not null references auth.users(id) on delete cascade,
+  bucket       text not null,               -- endpoint key, e.g. 'invite', 'reconcile'
+  window_start timestamptz not null default now(),
+  count        integer not null default 0,
+  primary key (user_id, bucket)
+);
+
+alter table public.rate_limits enable row level security;
+-- No policies on purpose: only the service role (which bypasses RLS) touches it.
+
+-- Atomic check-and-increment for a fixed window. Returns TRUE if the request is
+-- allowed (i.e. the count after incrementing is within p_max), FALSE if the
+-- caller has exceeded the limit. The whole read-modify-write happens in one
+-- statement, and the ON CONFLICT path locks the row, so concurrent invocations
+-- can't race past the cap. When the current window has expired, it rolls over to
+-- a fresh window starting now with a count of 1.
+create or replace function public.check_rate_limit(
+  p_user_id        uuid,
+  p_bucket         text,
+  p_max            integer,
+  p_window_seconds integer
+) returns boolean
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_now   timestamptz := now();
+  v_count integer;
+begin
+  insert into public.rate_limits as rl (user_id, bucket, window_start, count)
+    values (p_user_id, p_bucket, v_now, 1)
+  on conflict (user_id, bucket) do update
+    set window_start = case
+          when rl.window_start < v_now - make_interval(secs => p_window_seconds)
+            then v_now
+          else rl.window_start
+        end,
+        count = case
+          when rl.window_start < v_now - make_interval(secs => p_window_seconds)
+            then 1
+          else rl.count + 1
+        end
+  returning rl.count into v_count;
+
+  return v_count <= p_max;
+end;
+$$;

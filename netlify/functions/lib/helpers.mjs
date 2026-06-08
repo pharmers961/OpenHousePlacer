@@ -48,3 +48,40 @@ export function json(data, status = 200) {
     headers: { 'content-type': 'application/json' },
   });
 }
+
+// Per-user, per-endpoint rate limiting.
+//
+// These functions are stateless serverless invocations with no shared memory,
+// so an in-process token bucket would reset on every cold start. Instead we keep
+// the counter in Postgres (Supabase) and let a single SECURITY DEFINER function
+// do an atomic check-and-increment inside a fixed window — see check_rate_limit()
+// in supabase/schema.sql. Keyed by the authenticated user id, so the limit
+// targets the actual caller rather than a shared IP.
+//
+//   const ok = await rateLimit(db, user.id, 'invite', { max: 15, windowSec: 3600 });
+//   if (!ok) return tooManyRequests();
+//
+// Fails OPEN: if the limiter errors (DB hiccup, function not yet deployed), we
+// allow the request rather than lock out a paying customer. Availability beats
+// strict throttling here; the limiter is abuse mitigation, not access control.
+export async function rateLimit(db, userId, bucket, { max, windowSec }) {
+  if (!userId) return true;
+  try {
+    const { data, error } = await db.rpc('check_rate_limit', {
+      p_user_id: userId,
+      p_bucket: bucket,
+      p_max: max,
+      p_window_seconds: windowSec,
+    });
+    if (error) { console.error('rateLimit error:', error.message); return true; }
+    return data === true;
+  } catch (e) {
+    console.error('rateLimit threw:', e.message);
+    return true;
+  }
+}
+
+// Standard 429 response for a tripped rate limit.
+export function tooManyRequests(message = 'Too many requests. Please wait a moment and try again.') {
+  return json({ error: message }, 429);
+}

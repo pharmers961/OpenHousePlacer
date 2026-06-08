@@ -3,7 +3,7 @@
 // using the service-role key, so it does NOT depend on Storage RLS policies
 // being configured in the project (which is fragile to set up by hand).
 // Body: { filename, contentType, dataBase64 }   Returns: { url }
-import { adminDb, getUser, json } from './lib/helpers.mjs';
+import { adminDb, getUser, json, rateLimit, tooManyRequests } from './lib/helpers.mjs';
 
 const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', svg: 'image/svg+xml' };
 const EXT_BY_MIME = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg' };
@@ -20,6 +20,12 @@ export default async (req) => {
     .from('profiles').select('company_id, company_role').eq('id', user.id).maybeSingle();
   if (!me?.company_id) return json({ error: 'No brokerage on this account.' }, 400);
   if (me.company_role !== 'owner') return json({ error: 'Only the brokerage owner can change branding.' }, 403);
+
+  // Each call writes a ≤2 MB object to storage (path keyed by Date.now(), so
+  // repeats accumulate). Cap per owner — changing a logo a handful of times an
+  // hour is plenty for legitimate use.
+  if (!(await rateLimit(db, user.id, 'upload-logo', { max: 20, windowSec: 3600 })))
+    return tooManyRequests('Too many logo uploads in a short time. Please wait a bit and try again.');
 
   const { filename, contentType, dataBase64 } = await req.json().catch(() => ({}));
   if (!dataBase64) return json({ error: 'No file data received.' }, 400);

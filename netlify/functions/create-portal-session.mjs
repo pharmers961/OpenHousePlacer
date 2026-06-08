@@ -1,6 +1,6 @@
 // POST /api/create-portal-session
 // Returns: { url } — Stripe's self-serve billing portal (cancel, update card, invoices).
-import { stripe, adminDb, getUser, appUrl, json } from './lib/helpers.mjs';
+import { stripe, adminDb, getUser, appUrl, json, rateLimit, tooManyRequests } from './lib/helpers.mjs';
 
 export default async (req) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -9,6 +9,11 @@ export default async (req) => {
   if (!user) return json({ error: 'Not signed in' }, 401);
 
   const db = adminDb();
+
+  // Each call creates a Stripe billing-portal session; cap per user.
+  if (!(await rateLimit(db, user.id, 'portal', { max: 10, windowSec: 600 })))
+    return tooManyRequests();
+
   const { data: profile } = await db
     .from('profiles')
     .select('stripe_customer_id, company_id, company_role')

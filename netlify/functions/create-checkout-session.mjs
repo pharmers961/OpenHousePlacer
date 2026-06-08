@@ -2,7 +2,7 @@
 // Body: { plan, companyName?, contactName?, contactPhone?, teamSize? }
 //   (contact email is taken from the signed-in user, not the request body)
 // Returns: { url } — a Stripe Checkout page to redirect the agent to.
-import { stripe, adminDb, getUser, ensureStripeCustomer, appUrl, json } from './lib/helpers.mjs';
+import { stripe, adminDb, getUser, ensureStripeCustomer, appUrl, json, rateLimit, tooManyRequests } from './lib/helpers.mjs';
 
 const PRICE_BY_PLAN = {
   agent:         () => process.env.AGENT_PRICE_ID,          // Individual — $49/yr, 1 seat
@@ -24,8 +24,14 @@ export default async (req) => {
   const price = priceFn();
   if (!price) return json({ error: `Price for "${plan}" is not configured` }, 500);
 
+  const db = adminDb();
+
+  // Creating a Checkout session spins up Stripe objects; cap per user so the
+  // endpoint can't be looped to churn Stripe customers/sessions.
+  if (!(await rateLimit(db, user.id, 'checkout', { max: 10, windowSec: 600 })))
+    return tooManyRequests();
+
   try {
-    const db = adminDb();
     const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).maybeSingle();
     const customerId = await ensureStripeCustomer(db, profile, user);
 
