@@ -104,7 +104,26 @@
       if (sub) sub.textContent = company.name;
       if (logo) logo.alt = company.name;
     }
-    if (company.brand_color) document.documentElement.style.setProperty('--ink', company.brand_color);
+    if (company.brand_color) {
+      // The brand color drives the app SURFACES (sidebar, buttons, markers,
+      // accents) via --brand. Text stays dark (--ink) for readability, so a
+      // company color only repaints the chrome — not the body copy.
+      const brand = company.brand_color;
+      document.documentElement.style.setProperty('--brand', brand);
+      document.documentElement.style.setProperty('--brand-2', lighten(brand, 0.22));
+    }
+  }
+
+  // Mix a hex color toward white by `amt` (0..1). Returns the original on bad input.
+  function lighten(hex, amt) {
+    const c = String(hex || '').trim().replace('#', '');
+    if (!/^[0-9a-fA-F]{6}$/.test(c)) return hex;
+    const r = parseInt(c.slice(0, 2), 16);
+    const g = parseInt(c.slice(2, 4), 16);
+    const b = parseInt(c.slice(4, 6), 16);
+    const mix = (x) => Math.round(x + (255 - x) * amt);
+    const h = (x) => x.toString(16).padStart(2, '0');
+    return '#' + h(mix(r)) + h(mix(g)) + h(mix(b));
   }
 
   function mountChip(user, access) {
