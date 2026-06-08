@@ -141,6 +141,14 @@
   if(!configured || !window.supabase){ $('gate').textContent = 'Account is not configured yet.'; return; }
   const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function fileToBase64(file){
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => { const s = String(fr.result || ''); resolve(s.slice(s.indexOf(',') + 1)); };
+      fr.onerror = () => reject(new Error('Could not read the file.'));
+      fr.readAsDataURL(file);
+    });
+  }
 
   start();
   async function start(){
@@ -243,12 +251,17 @@
       const um = $('brUploadMsg'); um.className = 'muted'; um.textContent = 'Uploading…';
       try{
         if(file.size > 2*1024*1024) throw new Error('Please use an image under 2 MB.');
-        const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g,'') || 'png';
-        const path = company.id + '/logo-' + Date.now() + '.' + ext;
-        const up = await sb.storage.from('branding').upload(path, file, { upsert:true, contentType:file.type || undefined });
-        if(up.error) throw up.error;
-        const { data } = sb.storage.from('branding').getPublicUrl(path);
-        $('brLogo').value = data.publicUrl;
+        // Upload via our server (service role) so it doesn't depend on Storage RLS.
+        const dataBase64 = await fileToBase64(file);
+        const token = (await sb.auth.getSession()).data.session?.access_token;
+        const r = await fetch('/api/upload-logo', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+          body: JSON.stringify({ filename:file.name, contentType:file.type, dataBase64 }),
+        });
+        const out = await r.json().catch(() => ({}));
+        if(!r.ok || out.error) throw new Error(out.error || 'Upload failed.');
+        $('brLogo').value = out.url;
         um.className = 'msg ok'; um.textContent = 'Uploaded — click “Save branding” to apply it for your team.';
       }catch(err){ um.className = 'msg err'; um.textContent = 'Upload failed: ' + (err.message || err); }
     });
