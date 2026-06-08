@@ -58,6 +58,19 @@
       }
     }
 
+    // Safety net: still looks unpaid? Ask the server to reconcile straight from
+    // Stripe (covers a webhook that was missed, delayed, or never configured)
+    // before we send them to the paywall.
+    if (!access.active) {
+      try {
+        gate.msg('Checking your subscription…');
+        const token = (await sb.auth.getSession()).data.session?.access_token;
+        const r = await fetch('/api/reconcile', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+        const d = await r.json().catch(() => null);
+        if (d && d.active) access = await loadAccess(user);
+      } catch (e) { /* fall through to the paywall */ }
+    }
+
     if (!access.active) return (location.href = '/#pricing');
 
     // Granted.
