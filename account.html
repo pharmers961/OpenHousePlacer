@@ -287,8 +287,10 @@
     }});
     $('brSave').disabled = false;
     if(res.error){ brMsg(res.error,'err'); return; }
-    brMsg('Saved. Your team will see this branding in the app.','ok');
+    brMsg('Saved — taking you to the app…','ok');
     if(res.company?.name) $('teamName').textContent = res.company.name;
+    // Hand the owner straight back to the app to see their branding applied.
+    setTimeout(() => { location.href = '/app.html'; }, 800);
   }
 
   function render(data){
