@@ -82,14 +82,12 @@ export default async (req) => {
       if (snap.members.some((m) => (m.email || '').toLowerCase() === email))
         return json({ error: 'That agent is already on your team.' }, 409);
 
-      // If that email already belongs to someone with a company, don't poach them.
-      const { data: existing } = await db
-        .from('profiles').select('company_id').ilike('email', email).maybeSingle();
-      if (existing?.company_id) {
-        return json({ error: existing.company_id === companyId
-          ? 'That agent is already on your team.'
-          : 'That email already belongs to another brokerage.' }, 409);
-      }
+      // NOTE: we deliberately do NOT check whether this email belongs to another
+      // brokerage. Doing so (and saying so) let any owner probe arbitrary emails
+      // for account/brokerage membership — an enumeration leak. A pending invite
+      // for such a user is harmless: the attach paths (handle_new_user trigger
+      // and /api/accept-invite) only ever attach users who have NO company, so
+      // nobody can be poached; the invite just sits pending until revoked.
 
       await db.from('company_invites')
         .upsert({ company_id: companyId, email, invited_by: user.id }, { onConflict: 'company_id,email' });

@@ -6,8 +6,6 @@
  *  - Resumes checkout automatically after a magic-link login (?plan=...).
  * ========================================================================= */
 (function () {
-  const ADMIN_URL = 'app.html';
-
   const $ = (id) => document.getElementById(id);
   const modal = $('loginModal');
 
@@ -22,9 +20,8 @@
   const state = { user: null, active: false };
   let intendedPlan = null; // remembered when a logged-out user clicks a plan
 
-  // ---- Try the app: public locked demo (no account) ----
-  const demoEl = $('heroDemo');
-  if (demoEl) demoEl.addEventListener('click', () => { location.href = ADMIN_URL + '?demo=1'; });
+  // "Try the live demo" is a plain <a href="app.html?demo=1"> now — it works
+  // without JavaScript and is keyboard-accessible by default.
 
   // ---- Sign-in modal wiring ----
   if ($('footLogin')) $('footLogin').addEventListener('click', () => openLogin(null));
@@ -36,7 +33,9 @@
     btn.addEventListener('click', () => onPlan(btn.dataset.plan))
   );
 
-  // ---- pricing: monthly / yearly toggle (Individual plan) ----
+  // ---- pricing: monthly / yearly toggle (Individual plan only) ----
+  // The other billing period stays visible under the price so nobody misses
+  // that both options exist.
   (function wireBillingToggle() {
     const monthly = $('billMonthly'), yearly = $('billYearly');
     const price = $('agentPrice'), cta = $('agentCta');
@@ -45,11 +44,17 @@
       const isMonthly = period === 'monthly';
       monthly.classList.toggle('active', isMonthly);
       yearly.classList.toggle('active', !isMonthly);
+      monthly.setAttribute('aria-pressed', String(isMonthly));
+      yearly.setAttribute('aria-pressed', String(!isMonthly));
       price.innerHTML = isMonthly ? '$7<small>/month</small>' : '$49<small>/year</small>';
       cta.dataset.plan = isMonthly ? 'agent_monthly' : 'agent';
       cta.textContent = isMonthly ? 'Get started — $7/month' : 'Get started — $49/year';
       const note = document.getElementById('agentSaveNote');
       if (note) note.style.display = isMonthly ? 'none' : '';
+      const alt = document.getElementById('agentAlt');
+      if (alt) alt.textContent = isMonthly
+        ? 'Switch to yearly ($49) and get 2 months free.'
+        : 'Prefer monthly? $7/month — use the toggle above.';
     };
     monthly.addEventListener('click', () => apply('monthly'));
     yearly.addEventListener('click', () => apply('yearly'));
@@ -153,8 +158,25 @@
     }
   }
 
-  // ---- login modal ----
+  // ---- login modal (with keyboard support: Escape closes, Tab is trapped,
+  // and focus returns to whatever opened it) ----
+  let lastFocus = null;
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && modal.style.display === 'flex') closeLogin();
+  });
+  if (modal) modal.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const focusables = Array.from(
+      modal.querySelectorAll('button, input, select, a[href]')
+    ).filter((el) => !el.disabled && el.offsetParent !== null);
+    if (!focusables.length) return;
+    const first = focusables[0], last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+
   function openLogin(planToResume) {
+    lastFocus = document.activeElement;
     intendedPlan = planToResume;
     const isBiz = planToResume === 'brokerage';
     const signedIn = !!state.user;
@@ -192,7 +214,10 @@
     if (modal) modal.style.display = 'flex';
     setTimeout(() => { const el = isBiz ? $('bizName') : $('loginEmail'); if (el) el.focus(); }, 50);
   }
-  function closeLogin() { if (modal) modal.style.display = 'none'; }
+  function closeLogin() {
+    if (modal) modal.style.display = 'none';
+    if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+  }
 
   async function onLoginSubmit(e) {
     e.preventDefault();

@@ -30,6 +30,11 @@
   const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
   const ACTIVE = ['active', 'trialing'];
 
+  // The app's /api/map calls authenticate with this token (see mapApi in
+  // app.html). Published immediately so it's ready before any user action.
+  window.__sdGetToken = async () =>
+    (await sb.auth.getSession()).data.session?.access_token || null;
+
   start();
 
   async function start() {
@@ -78,6 +83,9 @@
     mountChip(user, access);
     if (location.search.includes('checkout=')) history.replaceState({}, '', location.pathname);
     gate.el.remove();
+
+    // Tell the app it can sync per-user data (saved addresses) with Supabase.
+    document.dispatchEvent(new CustomEvent('sd:ready', { detail: { sb, userId: user.id } }));
   }
 
   async function loadAccess(user) {

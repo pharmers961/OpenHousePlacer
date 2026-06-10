@@ -86,8 +86,22 @@ Stripe → (webhook) → our backend → updates the database → unlocks the ag
    | `ENTERPRISE_PRICE_ID` | `price_...` (Brokerage $499/yr) |
    | `SUPABASE_URL` | your Project URL |
    | `SUPABASE_SERVICE_ROLE_KEY` | the **secret** key (`sb_secret_...`) |
+   | `MAPBOX_TOKEN` | server-side Mapbox token — **no URL restriction** (see below) |
+   | `MAPBOX_PUBLIC_TOKEN` | browser tile token (`pk.`) — **URL-restricted to your domain** |
    | `APP_URL` | your Netlify URL |
    | `STRIPE_WEBHOOK_SECRET` | *fill in Step 4* |
+
+   **About the two Mapbox tokens** (create both at
+   <https://account.mapbox.com/access-tokens/>):
+   - `MAPBOX_TOKEN` — used ONLY by the `/api/map` backend for the expensive
+     APIs (geocoding, directions, drive-time matrix, road lookups, route
+     optimization). It never reaches the browser — that's what makes the
+     paywall enforceable. Do **not** URL-restrict it: server-to-server calls
+     send no Referer header, so Mapbox would reject a restricted token.
+   - `MAPBOX_PUBLIC_TOKEN` — a publishable `pk.` token the browser uses just
+     to draw the base map (served via `GET /api/map`). **URL-restrict it** to
+     your domain (Account → Tokens → URL restrictions) so it can't be reused
+     elsewhere. No tokens live in the repository.
 
    Then trigger a redeploy (**Deploys → Trigger deploy → Deploy site**) so the
    variables take effect.
@@ -157,14 +171,20 @@ new webhook secret, live price IDs), and redeploy.
 
 ---
 
-## Honest limitation to know about
+## How the paywall is enforced (server-side)
 
-The sign-scoring logic runs in the browser, so a technically skilled person
-could read the page source and run it locally without paying. The **billing,
-renewals, and account state are enforced server-side** (that part is solid), and
-the paywall stops normal users. If you later want hard protection, we move the
-scoring + Mapbox calls behind the backend so the app is useless without a valid
-paid session. That's a follow-up phase — not needed to launch.
+Every Mapbox API call the tool makes goes through the `/api/map` backend, which
+requires a signed-in user with an **active subscription** (checked against the
+database on every request) and rate-limits each user. The public demo
+(`app.html?demo=1`) is allowed through without an account, but it is locked to
+the sample listing's area and rate-limited per IP. Reading the page source
+doesn't help anyone: without a paid session the backend refuses to do the
+geocoding/routing work, so the app is useless without paying.
+
+> **Upgrading an existing project?** Re-run `supabase/schema.sql` in the SQL
+> Editor — it's idempotent, and recent versions add the `saved_addresses`
+> table (cross-device saved listings) and adjust `rate_limits` so the demo's
+> IP-based throttling works.
 
 ---
 
@@ -173,6 +193,8 @@ paid session. That's a follow-up phase — not needed to launch.
 | Secret | Lives in | Public? |
 |--------|----------|---------|
 | Supabase anon key | `assets/js/config.js` | ✅ yes |
+| Mapbox public `pk.` token (map tiles only) | `app.html` | ✅ yes — but URL-restrict it |
+| Mapbox server token (`MAPBOX_TOKEN`) | Netlify env var | ❌ never |
 | Supabase service_role key | Netlify env var | ❌ never |
 | Stripe secret key | Netlify env var | ❌ never |
 | Stripe webhook secret | Netlify env var | ❌ never |

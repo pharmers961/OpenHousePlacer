@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Your account — SignDeployer</title>
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -107,8 +108,8 @@
     </div>
     <div class="field">
       <label for="brLogoFile">Logo</label>
-      <input id="brLogoFile" type="file" accept="image/png,image/svg+xml,image/jpeg,image/webp" />
-      <p class="muted" id="brUploadMsg" style="margin:6px 0 0">Upload a PNG/SVG. It shows on the dark sidebar, so a white/light logo works best.</p>
+      <input id="brLogoFile" type="file" accept="image/png,image/jpeg,image/webp" />
+      <p class="muted" id="brUploadMsg" style="margin:6px 0 0">Upload a PNG, JPG, or WebP. It shows on the dark sidebar, so a white/light logo works best.</p>
       <input id="brLogo" type="text" placeholder="…or paste an https:// logo URL" style="margin-top:8px" />
     </div>
     <div class="field">
@@ -129,7 +130,7 @@
 
 <div class="gatemsg" id="gate">Loading your account…</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
 <script src="assets/js/config.js"></script>
 <script>
 (function(){

@@ -170,11 +170,12 @@ values ('branding', 'branding', true)
 on conflict (id) do nothing;
 
 -- Restrict the bucket to small image files (defense-in-depth; the client also
--- checks). file_size_limit is in bytes (2 MB).
+-- checks). file_size_limit is in bytes (2 MB). SVG is excluded on purpose:
+-- SVGs can carry scripts and the bucket is public (stored-XSS risk).
 update storage.buckets
   set public = true,
       file_size_limit = 2097152,
-      allowed_mime_types = array['image/png','image/jpeg','image/svg+xml','image/webp']
+      allowed_mime_types = array['image/png','image/jpeg','image/webp']
   where id = 'branding';
 
 -- No public "list/select" policy on purpose: the bucket is public, so each
@@ -183,15 +184,18 @@ update storage.buckets
 drop policy if exists "branding public read" on storage.objects;
 
 -- Uploads/updates are scoped to the uploader's OWN company folder
--- (logos are stored at "<company_id>/..."), so a user can't overwrite or
--- replace another brokerage's logo.
+-- (logos are stored at "<company_id>/...") AND to company OWNERS only, so a
+-- regular member can't replace their brokerage's logo, and nobody can touch
+-- another brokerage's folder. (The /api/upload-logo function enforces the same
+-- rule server-side; this covers direct Storage API calls with the anon key.)
 drop policy if exists "branding authenticated upload" on storage.objects;
 create policy "branding authenticated upload"
   on storage.objects for insert to authenticated
   with check (
     bucket_id = 'branding'
     and (storage.foldername(name))[1] = (
-      select company_id::text from public.profiles where id = auth.uid()
+      select company_id::text from public.profiles
+      where id = auth.uid() and company_role = 'owner'
     )
   );
 
@@ -201,7 +205,8 @@ create policy "branding authenticated update"
   using (
     bucket_id = 'branding'
     and (storage.foldername(name))[1] = (
-      select company_id::text from public.profiles where id = auth.uid()
+      select company_id::text from public.profiles
+      where id = auth.uid() and company_role = 'owner'
     )
   );
 
@@ -215,12 +220,17 @@ create policy "branding authenticated update"
 -- with no policies (clients can neither read nor forge their own counters).
 -- ---------------------------------------------------------------------------
 create table if not exists public.rate_limits (
-  user_id      uuid not null references auth.users(id) on delete cascade,
-  bucket       text not null,               -- endpoint key, e.g. 'invite', 'reconcile'
+  user_id      uuid not null,               -- auth user id, OR an IP-derived id for the public demo
+  bucket       text not null,               -- endpoint key, e.g. 'invite', 'reconcile', 'map-demo'
   window_start timestamptz not null default now(),
   count        integer not null default 0,
   primary key (user_id, bucket)
 );
+
+-- The /api/map demo limiter keys rows by an IP-derived uuid that has no
+-- auth.users row, so the table must NOT have a foreign key to auth.users.
+-- (Safe to re-run: drops the FK left over from earlier versions of this schema.)
+alter table public.rate_limits drop constraint if exists rate_limits_user_id_fkey;
 
 alter table public.rate_limits enable row level security;
 -- No policies on purpose: only the service role (which bypasses RLS) touches it.
@@ -262,3 +272,42 @@ begin
   return v_count <= p_max;
 end;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- saved_addresses: each agent's saved open-house listings, synced across
+-- devices. Previously these lived only in the browser's localStorage, which
+-- silently lost a paying agent's data when they switched devices or cleared
+-- the browser. RLS: each user can only ever see and modify their own rows.
+-- ---------------------------------------------------------------------------
+create table if not exists public.saved_addresses (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  address    text not null,
+  center     jsonb,                          -- [lng, lat] of the geocoded listing, if known
+  created_at timestamptz not null default now(),
+  unique (user_id, address)
+);
+
+alter table public.saved_addresses enable row level security;
+
+drop policy if exists "own saved addresses - read" on public.saved_addresses;
+create policy "own saved addresses - read"
+  on public.saved_addresses for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "own saved addresses - insert" on public.saved_addresses;
+create policy "own saved addresses - insert"
+  on public.saved_addresses for insert
+  with check (auth.uid() = user_id);
+
+-- Needed for upsert (insert … on conflict do update) when re-saving an address.
+drop policy if exists "own saved addresses - update" on public.saved_addresses;
+create policy "own saved addresses - update"
+  on public.saved_addresses for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "own saved addresses - delete" on public.saved_addresses;
+create policy "own saved addresses - delete"
+  on public.saved_addresses for delete
+  using (auth.uid() = user_id);

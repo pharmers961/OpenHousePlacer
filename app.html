@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>SignDeployer — Open House Sign Placement</title>
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
 
 <!-- Mapbox GL JS. Verify the latest version against current Mapbox docs before relying on it. -->
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.9.0/mapbox-gl.css" rel="stylesheet" />
@@ -82,7 +83,7 @@
     font-size:10.5px;
     font-weight:500;
     letter-spacing:3px;
-    color:#bdbbb6;
+    color:#ccd6e0; /* AA contrast on the dark brand band */
     text-transform:uppercase;
     max-height:20px; opacity:1;
     transition:max-height .25s ease, opacity .2s ease, margin .25s ease;
@@ -231,6 +232,9 @@
     gap:8px;
   }
   .status.err{ color:#b00020; }
+  .progress{ margin-top:8px; height:4px; background:var(--line); border-radius:3px; overflow:hidden; }
+  .progress i{ display:block; height:100%; width:0; background:var(--brand); border-radius:3px;
+    transition:width .45s ease; }
   .spinner{
     flex:0 0 14px;
     width:14px; height:14px;
@@ -293,6 +297,13 @@
 
   /* ---- Map ---- */
   #map{ flex:1; height:100%; position:relative; }
+  /* Empty state: shown over the map until the first search renders */
+  .map-empty{ position:absolute; inset:0; z-index:4; display:flex; align-items:center;
+    justify-content:center; pointer-events:none; }
+  .map-empty .card{ background:rgba(255,255,255,.95); border:1px solid var(--line); border-radius:10px;
+    padding:18px 22px; max-width:320px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.12);
+    font-size:13.5px; line-height:1.55; color:var(--accent-soft); }
+  .map-empty .card b{ color:var(--ink); display:block; margin-bottom:4px; font-size:14.5px; }
 
   .navnote{ font-size:12px; line-height:1.5; color:var(--muted); margin-bottom:12px; }
   .navnote.warn{ color:#8a5a00; margin-top:14px; }
@@ -472,7 +483,9 @@
       measured traffic counts — so treat it as a strong starting point and adjust with your local knowledge.</span>
     </div>
 
-    <div class="status" id="status"></div>
+    <!-- aria-live: search progress / errors are announced to screen readers -->
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+    <div class="progress" id="progress" hidden aria-hidden="true"><i></i></div>
 
     <div class="results" id="results"></div>
     <div class="nav" id="nav"></div>
@@ -480,6 +493,10 @@
 </aside>
 
 <div id="map">
+  <div class="map-empty" id="mapEmpty">
+    <div class="card"><b>Your sign plan appears here</b>
+    Enter the listing address on the left, then “Find sign spots” — we’ll map the best corners and the driving route.</div>
+  </div>
   <div class="legend" id="legend">
     <button type="button" class="legend-toggle" id="legendToggle" aria-expanded="true" aria-controls="legendBody">
       <span class="legend-title">Key</span><span class="legend-caret" aria-hidden="true">▾</span>
@@ -515,17 +532,39 @@
    ============================================================ */
 
 /* ------------------------------------------------------------------
-   Mapbox token — baked in so agents never have to enter one.
-   IMPORTANT: paste a PUBLIC token (starts with "pk.") below and, if you
-   restrict it, allowlist your production domain(s) in the Mapbox dashboard
-   (Account → Tokens → URL restrictions). A domain-locked public token is
-   the supported pattern for a static site like this.
+   Mapbox PUBLIC tile token — fetched from the server (GET /api/map) at
+   load, where it lives in the MAPBOX_PUBLIC_TOKEN env var. Keeping it out
+   of the source means rotating it is just an env-var change (no commit),
+   and GitHub's secret scanning has nothing to block. URL-restrict that
+   token to your domain in the Mapbox dashboard; it only renders tiles.
+
+   All the EXPENSIVE Mapbox APIs (geocoding, directions, matrix, tilequery,
+   route optimization) go through our authenticated POST /api/map proxy,
+   which requires an active subscription (or the area-locked, rate-limited
+   demo) and uses its own secret server token. That is what makes the
+   paywall real.
    ------------------------------------------------------------------ */
-const MAPBOX_TOKEN = 'pk.eyJ1IjoicGhhcm1lcnM5MjUiLCJhIjoiY21wcnJpcmcxMTF2eDJycHI1aDVkZ3R6bSJ9.LMViGVOyUKq2AUvbKDPlog';
+let MAPBOX_GL_TOKEN = ''; // filled by initMapToken() below
+let TOKEN_OK = false;
 
 const $ = id => document.getElementById(id);
 const statusEl = $('status');
-const TOKEN_OK = /^pk\./.test(MAPBOX_TOKEN);
+
+/* Every Mapbox API request goes through our server. app-guard.js publishes
+   window.__sdGetToken once the user is verified; demo requests carry demo:true
+   and the server confines them to the sample listing's area. */
+async function mapApi(kind, params){
+  const headers = { 'Content-Type':'application/json' };
+  const token = window.__sdGetToken ? await window.__sdGetToken() : null;
+  if(token) headers.Authorization = 'Bearer ' + token;
+  const r = await fetch('/api/map', {
+    method:'POST', headers,
+    body: JSON.stringify(Object.assign({ kind, demo: DEMO }, params))
+  });
+  const d = await r.json().catch(() => null);
+  if(!r.ok) throw new Error((d && d.error) || ('Map service error (' + r.status + ').'));
+  return d;
+}
 // Neutral default branding lives in the HTML (assets/img/brand-default.svg).
 // app-guard.js overrides the logo / name / color for brokerages that set their
 // own branding — so individual agents see a clean, generic SignDeployer.
@@ -612,13 +651,27 @@ function saveSession(){
   }catch(e){ /* storage may be unavailable */ }
 }
 
-// Bring the map up immediately on load so the agent never sees a blank screen.
-if(TOKEN_OK){
-  ensureMap(MAPBOX_TOKEN);
-} else {
-  $('addrHint').textContent = 'Setup needed: a Mapbox token has not been configured for this site yet.';
-  setStatus('This tool isn’t configured yet — the Mapbox token is missing. Contact your admin.', true);
-}
+// Fetch the public tile token, then bring the map up immediately so the
+// agent never sees a blank screen. In demo mode, also center on the sample
+// listing and drop its marker.
+(async function initMapToken(){
+  try{
+    const r = await fetch('/api/map');
+    const d = await r.json().catch(() => null);
+    if(d && /^pk\./.test(d.glToken || '')) MAPBOX_GL_TOKEN = d.glToken;
+  }catch(e){ /* handled below */ }
+  TOKEN_OK = /^pk\./.test(MAPBOX_GL_TOKEN);
+  if(!TOKEN_OK){
+    $('addrHint').textContent = 'Setup needed: a Mapbox token has not been configured for this site yet.';
+    setStatus('This tool isn’t configured yet — the Mapbox tile token is missing (set MAPBOX_PUBLIC_TOKEN). Contact your admin.', true);
+    return;
+  }
+  ensureMap(MAPBOX_GL_TOKEN);
+  if(DEMO && map){
+    const showHome = () => { try { map.setCenter(DEMO_COORD); map.setZoom(14); clearMap(); addMarker(DEMO_COORD[0], DEMO_COORD[1], '⌂', true); } catch(e){} };
+    if(map.isStyleLoaded()) showHome(); else map.once('load', showHome);
+  }
+})();
 
 // ---- DEMO MODE (public "Try the app", ?demo=1) -----------------------------
 // Locks the listing to a sample address (the White House); only the sign count
@@ -637,18 +690,40 @@ if(DEMO){
   selectedCoord = DEMO_COORD.slice();
   const hint = $('addrHint');
   if(hint) hint.textContent = 'Demo listing is fixed — adjust the number of signs and the drive time, then “Find sign spots”.';
-  // Center the map on the sample listing and drop its marker.
-  if(TOKEN_OK && map){
-    const showHome = () => { try { map.setCenter(DEMO_COORD); map.setZoom(14); clearMap(); addMarker(DEMO_COORD[0], DEMO_COORD[1], '⌂', true); } catch(e){} };
-    if(map.isStyleLoaded()) showHome(); else map.once('load', showHome);
-  }
+  // (The map is centered on the sample listing by initMapToken() above,
+  // once the tile token has been fetched.)
 }
 
 // ---- Saved addresses (full app only; hidden in the public demo) -------------
 // Lets a logged-in user keep a personal list of listings and reopen them later.
+// localStorage is the instant local cache; once app-guard verifies the user it
+// fires 'sd:ready' and the list is synced to the saved_addresses table in
+// Supabase, so a paying agent's saved listings follow them across devices.
 const SAVED_KEY = 'signdeployer_addresses';
+let savedCloud = null; // { sb, userId } once signed in (set on sd:ready)
 function loadSavedAddrs(){ try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); } catch(e){ return []; } }
 function persistSavedAddrs(list){ try { localStorage.setItem(SAVED_KEY, JSON.stringify(list.slice(0,50))); } catch(e){} }
+
+document.addEventListener('sd:ready', async (e) => {
+  savedCloud = e.detail;
+  try{
+    const { data: rows } = await savedCloud.sb
+      .from('saved_addresses').select('address, center')
+      .order('created_at', { ascending:false }).limit(50);
+    const cloudList = (rows || []).map(r => ({ address: r.address, center: r.center }));
+    const have = new Set(cloudList.map(r => r.address.toLowerCase()));
+    // Anything saved locally before this device synced gets pushed up once.
+    const localOnly = loadSavedAddrs().filter(s => s.address && !have.has(s.address.toLowerCase()));
+    if(localOnly.length){
+      await savedCloud.sb.from('saved_addresses').upsert(
+        localOnly.map(s => ({ user_id: savedCloud.userId, address: s.address, center: s.center || null })),
+        { onConflict: 'user_id,address' }
+      );
+    }
+    persistSavedAddrs(localOnly.concat(cloudList));
+    renderSavedAddrs();
+  }catch(err){ /* cloud sync is best-effort; the local list keeps working */ }
+});
 function renderSavedAddrs(){
   const wrap = $('savedWrap'); if(!wrap) return;
   if(DEMO){ wrap.hidden = true; return; }
@@ -665,7 +740,14 @@ function renderSavedAddrs(){
   ).join('');
   el.querySelectorAll('.addr').forEach(a => a.addEventListener('click', () => openSavedAddr(+a.dataset.i)));
   el.querySelectorAll('.del').forEach(b => b.addEventListener('click', () => {
-    const l = loadSavedAddrs(); l.splice(+b.dataset.i, 1); persistSavedAddrs(l); renderSavedAddrs();
+    const l = loadSavedAddrs();
+    const removed = l.splice(+b.dataset.i, 1)[0];
+    persistSavedAddrs(l); renderSavedAddrs();
+    if(savedCloud && removed && removed.address){
+      savedCloud.sb.from('saved_addresses').delete()
+        .eq('user_id', savedCloud.userId).eq('address', removed.address)
+        .then(() => {}, () => {});
+    }
   }));
 }
 function saveCurrentAddr(){
@@ -677,7 +759,12 @@ function saveCurrentAddr(){
   list.unshift({ address, center });
   persistSavedAddrs(list);
   renderSavedAddrs();
-  setStatus('Saved “' + address + '”.');
+  if(savedCloud){
+    savedCloud.sb.from('saved_addresses')
+      .upsert({ user_id: savedCloud.userId, address, center }, { onConflict: 'user_id,address' })
+      .then(() => {}, () => {});
+  }
+  setStatus('Saved “' + address + '” — it syncs to your account on any device.');
 }
 function openSavedAddr(i){
   const s = loadSavedAddrs()[i]; if(!s) return;
@@ -727,14 +814,10 @@ const acEl = $('ac');
 function hideAC(){ acEl.hidden = true; acEl.innerHTML = ''; acItems = []; acActive = -1; }
 
 const acCache = new Map(); // cache suggestions per query to cut geocoding calls
-async function fetchSuggestions(q, token){
+async function fetchSuggestions(q){
   const key = q.toLowerCase();
   if(acCache.has(key)) return acCache.get(key);
-  const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
-    encodeURIComponent(q) + '.json?autocomplete=true&limit=5&types=address,place&access_token=' + token;
-  const r = await fetch(url);
-  if(!r.ok) throw new Error('Address lookup failed (' + r.status + ').');
-  const d = await r.json();
+  const d = await mapApi('suggest', { q });
   const items = (d.features || []).map(f => ({
     full: f.place_name,
     main: f.text || f.place_name,
@@ -781,7 +864,7 @@ $('addr').addEventListener('input', () => {
   }
   acTimer = setTimeout(async () => {
     try{
-      acItems = await fetchSuggestions(q, MAPBOX_TOKEN);
+      acItems = await fetchSuggestions(q);
       acActive = -1;
       renderAC();
     }catch(e){
@@ -801,10 +884,16 @@ $('addr').addEventListener('keydown', e => {
 });
 $('addr').addEventListener('blur', () => setTimeout(hideAC, 150));
 
-function setStatus(msg, isErr, loading){
+function setStatus(msg, isErr, loading, progressPct){
   statusEl.className = 'status' + (isErr ? ' err' : '');
   statusEl.innerHTML = (loading ? '<span class="spinner" aria-hidden="true"></span>' : '') +
     '<span>' + (msg ? msg.replace(/</g,'&lt;') : '') + '</span>';
+  // Thin progress bar under the status while a multi-step search runs.
+  const bar = $('progress');
+  if(bar){
+    bar.hidden = !(loading && progressPct != null);
+    if(progressPct != null) bar.firstElementChild.style.width = progressPct + '%';
+  }
 }
 
 function clearMap(){
@@ -841,6 +930,7 @@ const LISTING_MARK_SVG =
 })();
 
 function addMarker(lng, lat, label, isHome, isFallback, isManual){
+  const empty = $('mapEmpty'); if(empty) empty.hidden = true; // first marker dismisses the empty state
   const el = document.createElement('div');
   el.className = 'marker' + (isHome ? ' home' : '') + (isFallback ? ' fallback' : '') + (isManual ? ' manual' : '');
   if(isHome){
@@ -866,14 +956,10 @@ function dist(a, b){
 const GEO_CACHE_KEY = 'signdeployer_geocache';
 function geoCacheGet(addr){ try{ return (JSON.parse(localStorage.getItem(GEO_CACHE_KEY)||'{}'))[addr.trim().toLowerCase()] || null; }catch(e){ return null; } }
 function geoCacheSet(addr, val){ try{ const all=JSON.parse(localStorage.getItem(GEO_CACHE_KEY)||'{}'); all[addr.trim().toLowerCase()]=val; const ks=Object.keys(all); if(ks.length>200) delete all[ks[0]]; localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(all)); }catch(e){} }
-async function geocode(address, token){
+async function geocode(address){
   const cached = geoCacheGet(address);
   if(cached) return cached;
-  const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
-              encodeURIComponent(address) + '.json?limit=1&access_token=' + token;
-  const r = await fetch(url);
-  if(!r.ok) throw new Error('Geocoding failed (' + r.status + '). Check the token & address.');
-  const d = await r.json();
+  const d = await mapApi('geocode', { q: address });
   if(!d.features || !d.features.length) throw new Error('Address not found. Try adding city & state.');
   const f = d.features[0];
   const out = { center: f.center, full: f.place_name }; // [lng, lat] + complete address
@@ -884,11 +970,7 @@ async function geocode(address, token){
 // Reverse geocode (used for manually-placed signs).
 async function reverseGeocode(lng, lat){
   try{
-    const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
-      lng + ',' + lat + '.json?types=address&limit=1&access_token=' + MAPBOX_TOKEN;
-    const r = await fetch(url);
-    if(!r.ok) return null;
-    const d = await r.json();
+    const d = await mapApi('reverse', { lng, lat });
     const f = d.features && d.features[0]; if(!f) return null;
     const name = f.text || f.place_name;
     return { road: name, name };
@@ -913,19 +995,16 @@ function projectPoint(origin, bearingDeg, metres){
   return [toDeg(lng2), toDeg(lat2)];
 }
 
-async function getRouteSteps(from, to, token){
-  const url = 'https://api.mapbox.com/directions/v5/mapbox/driving/' +
-    from[0]+','+from[1]+';'+to[0]+','+to[1] +
-    '?steps=true&geometries=geojson&overview=full&access_token=' + token;
-  const r = await fetch(url);
-  if(!r.ok) return null;
-  const d = await r.json();
-  if(!d.routes || !d.routes.length) return null;
-  const steps = d.routes[0].legs[0].steps || [];
-  // Each step's maneuver location is a turn/intersection point.
-  return steps
-    .map(s => ({ loc: s.maneuver.location, name: s.name || 'Unnamed road' }))
-    .filter(s => s.loc);
+async function getRouteSteps(from, to){
+  try{
+    const d = await mapApi('directions', { from, to });
+    if(!d.routes || !d.routes.length) return null;
+    const steps = d.routes[0].legs[0].steps || [];
+    // Each step's maneuver location is a turn/intersection point.
+    return steps
+      .map(s => ({ loc: s.maneuver.location, name: s.name || 'Unnamed road' }))
+      .filter(s => s.loc);
+  }catch(e){ return null; }
 }
 
 /*
@@ -934,12 +1013,12 @@ async function getRouteSteps(from, to, token){
   Limit is ~12 coordinates per request. If there are more stops than the cap,
   or the call fails, we fall back so navigation still works.
 */
-async function optimizeRoute(home, spots, token){
+async function optimizeRoute(home, spots){
   const pts = [home, ...spots.map(s=>s.loc)];
   if(pts.length > 12){
     const head = spots.slice(0, 11);
     const tail = spots.slice(11);
-    const headRes = await optimizeRoute(home, head, token);
+    const headRes = await optimizeRoute(home, head);
     const orderedHead = headRes.optimized ? headRes.ordered : head.slice();
     let cursor = orderedHead.length ? orderedHead[orderedHead.length-1].loc : home;
     const rest = tail.slice(), orderedTail = [];
@@ -950,19 +1029,11 @@ async function optimizeRoute(home, spots, token){
     }
     return { ordered: orderedHead.concat(orderedTail), optimized: headRes.optimized, partial:true };
   }
-  // radiuses=unlimited lets each point snap to the nearest road; roundtrip=true
-  // (source=first) returns to the listing, matching the round-trip Google link.
-  const coords = pts.map(p=>p[0]+','+p[1]).join(';');
-  const radiuses = pts.map(()=>'unlimited').join(';');
-  const url = 'https://api.mapbox.com/optimized-trips/v1/mapbox/driving/' +
-    coords + '?source=first&roundtrip=true&radiuses=' + radiuses + '&access_token=' + token;
+  // The server requests roundtrip=true&source=first with radiuses=unlimited,
+  // so each point snaps to the nearest road and the trip returns to the
+  // listing, matching the round-trip Google link.
   try{
-    const r = await fetch(url);
-    const d = await r.json().catch(()=>null);
-    if(!r.ok || !d){
-      const reason = (d && (d.message || d.code)) ? (d.code||'') + ' ' + (d.message||'') : ('HTTP ' + r.status);
-      return { ordered: spots.slice(), optimized:false, reason: reason.trim() };
-    }
+    const d = await mapApi('optimize', { coords: pts });
     if(d.code && d.code !== 'Ok'){
       return { ordered: spots.slice(), optimized:false, reason: d.code + (d.message? ' — '+d.message : '') };
     }
@@ -1008,7 +1079,7 @@ function singleStopUrl(loc){
          loc[1] + ',' + loc[0] + '&travelmode=driving';
 }
 
-async function findSpots(home, token, maxDriveMin, wantCount){
+async function findSpots(home, maxDriveMin, wantCount){
   const bearings = [0,45,90,135,180,225,270,315]; // 8 approach directions
   // Route from a distant point in each direction back to the house. The
   // maneuver points along each route trace the real approach roads — including
@@ -1021,7 +1092,7 @@ async function findSpots(home, token, maxDriveMin, wantCount){
   const candidates = [];
 
   // Approach routes from each direction back to the house (parallel requests).
-  const stepLists = await Promise.all(bearings.map(b => getRouteSteps(projectPoint(home, b, outerKm), home, token)));
+  const stepLists = await Promise.all(bearings.map(b => getRouteSteps(projectPoint(home, b, outerKm), home)));
   stepLists.forEach(steps => {
     if(!steps) return;
     steps.forEach(s => {
@@ -1047,7 +1118,7 @@ async function findSpots(home, token, maxDriveMin, wantCount){
   // Annotate driving duration from the house via the Matrix API, then KEEP
   // ONLY points within the drive-time limit. No over-limit fallback: if the
   // area can't supply enough in-limit points, we return fewer and say so.
-  unique = await annotateDriveTime(home, unique, token, maxDriveMin);
+  unique = await annotateDriveTime(home, unique, maxDriveMin);
   unique = unique.filter(c => c.within);
   if(!unique.length) return [];
 
@@ -1063,7 +1134,7 @@ async function findSpots(home, token, maxDriveMin, wantCount){
 
   // Road-hierarchy scoring via Mapbox Tilequery (motorway → residential).
   // Higher-class roads = more visibility, so they score higher.
-  await annotateRoadClass(unique, token);
+  await annotateRoadClass(unique);
 
   // Greedy selection that balances three things:
   //   - spread (signs cover the area, not clustered)
@@ -1099,16 +1170,12 @@ const ROAD_SCORE = {
   primary_link:0.7, secondary:0.65, secondary_link:0.55, tertiary:0.45,
   tertiary_link:0.4, street:0.25, residential:0.2, service:0.1, track:0.05
 };
-async function annotateRoadClass(cands, token){
+async function annotateRoadClass(cands){
   for(const c of cands){
     c.roadScore = 0.2;       // default if lookup fails
     c.roadClass = null;
     try{
-      const url = 'https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/tilequery/' +
-        c.loc[0] + ',' + c.loc[1] + '.json?radius=25&layers=road&limit=8&access_token=' + token;
-      const r = await fetch(url);
-      if(!r.ok) continue;
-      const d = await r.json();
+      const d = await mapApi('tilequery', { lng: c.loc[0], lat: c.loc[1] });
       const feats = (d.features || [])
         .map(f => f.properties && f.properties.class)
         .filter(Boolean);
@@ -1129,21 +1196,13 @@ async function annotateRoadClass(cands, token){
   Returns driving durations (seconds). Batched to <=24 candidates per call.
   Annotates each candidate with .driveMin and .within (<= maxDriveMin).
 */
-async function annotateDriveTime(home, cands, token, maxDriveMin){
+async function annotateDriveTime(home, cands, maxDriveMin){
   const kept = [];
   const batchSize = 24;
   for(let i=0; i<cands.length; i+=batchSize){
     const batch = cands.slice(i, i+batchSize);
-    const coords = [home, ...batch.map(c=>c.loc)]
-      .map(p => p[0]+','+p[1]).join(';');
-    const destIdx = batch.map((_,k)=>k+1).join(';');
-    const url = 'https://api.mapbox.com/directions-matrix/v1/mapbox/driving/' +
-      coords + '?sources=0&destinations=' + destIdx +
-      '&annotations=duration&access_token=' + token;
     try{
-      const r = await fetch(url);
-      if(!r.ok) continue;
-      const d = await r.json();
+      const d = await mapApi('matrix', { coords: [home, ...batch.map(c=>c.loc)] });
       const durs = d.durations && d.durations[0]; // seconds from source to each dest
       if(!durs) continue;
       batch.forEach((c, k) => {
@@ -1307,7 +1366,7 @@ async function addManualSign(lng, lat){
   const info = await reverseGeocode(lng, lat);
   if(info && info.name) name = info.name;
   try{
-    const annotated = await annotateDriveTime(curHome, [{loc, name}], MAPBOX_TOKEN, 9999);
+    const annotated = await annotateDriveTime(curHome, [{loc, name}], 9999);
     if(annotated[0] && annotated[0].driveMin != null) driveMin = annotated[0].driveMin;
   }catch(e){ /* drive time optional */ }
   curOrdered.push({ loc, name, driveMin, dHome: dist(curHome, loc), roadClass:null, manual:true });
@@ -1369,7 +1428,6 @@ function showCachedNote(){
 
 $('go').addEventListener('click', async () => {
   const address = DEMO ? DEMO_ADDR : $('addr').value.trim();
-  const token = MAPBOX_TOKEN;
   setStatus('');
   $('results').innerHTML = '';
   $('nav').innerHTML = '';
@@ -1382,10 +1440,10 @@ $('go').addEventListener('click', async () => {
   const cacheKey = resultKey(address, wantCount, maxDriveMin);
 
   $('go').disabled = true;
-  setStatus('Step 1 of 3 — locating address…', false, true);
+  setStatus('Step 1 of 3 — locating address…', false, true, 15);
 
   try{
-    if(!ensureMap(token)){
+    if(!ensureMap(MAPBOX_GL_TOKEN)){
       setStatus('Map could not start — check your token.', true);
       return;
     }
@@ -1414,7 +1472,7 @@ $('go').addEventListener('click', async () => {
     } else if(selectedCoord){
       home = selectedCoord; // field already holds the full picked address
     } else {
-      const g = await geocode(address, token);
+      const g = await geocode(address);
       home = g.center;
       if(g.full){ full = g.full; $('addr').value = g.full; }
     }
@@ -1426,16 +1484,16 @@ $('go').addEventListener('click', async () => {
     clearMap();
     addMarker(home[0], home[1], '⌂', true); // house symbol
 
-    setStatus('Step 2 of 3 — analyzing approach roads, drive times & road visibility…', false, true);
-    const spots = await findSpots(home, token, maxDriveMin, wantCount);
+    setStatus('Step 2 of 3 — analyzing approach roads, drive times & road visibility…', false, true, 55);
+    const spots = await findSpots(home, maxDriveMin, wantCount);
 
     if(!spots.length){
       setStatus('No sign spots found within ' + maxDriveMin + ' min drive. Try increasing the limit or a more complete address.', true);
       return;
     }
 
-    setStatus('Step 3 of 3 — optimizing the driving order…', false, true);
-    const { ordered, optimized, reason, partial } = await optimizeRoute(home, spots, token);
+    setStatus('Step 3 of 3 — optimizing the driving order…', false, true, 85);
+    const { ordered, optimized, reason, partial } = await optimizeRoute(home, spots);
     lastHome = home;
     lastOrdered = ordered;
     curHome = home;
@@ -1470,7 +1528,7 @@ $('go').addEventListener('click', async () => {
 
 <!-- This is the gated app. The guard requires an active subscription;
      anyone not signed in / not subscribed is sent back to the landing page. -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
 <script src="assets/js/config.js"></script>
 <script src="assets/js/app-guard.js"></script>
 </body>

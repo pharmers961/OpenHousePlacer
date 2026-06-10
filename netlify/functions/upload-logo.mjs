@@ -5,8 +5,11 @@
 // Body: { filename, contentType, dataBase64 }   Returns: { url }
 import { adminDb, getUser, json, rateLimit, tooManyRequests } from './lib/helpers.mjs';
 
-const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', svg: 'image/svg+xml' };
-const EXT_BY_MIME = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg' };
+// SVG is intentionally NOT accepted: an SVG can carry <script> and is stored on
+// a public URL, making it a stored-XSS vector if anyone opens it directly.
+// Raster formats can't execute code.
+const MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' };
+const EXT_BY_MIME = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
 
 export default async (req) => {
@@ -33,8 +36,8 @@ export default async (req) => {
   // Resolve the extension/mime from the content type, falling back to the
   // filename extension (some browsers send an empty type for SVG).
   let ext = EXT_BY_MIME[contentType];
-  if (!ext && filename) ext = ({ png: 'png', jpg: 'jpg', jpeg: 'jpg', webp: 'webp', svg: 'svg' })[(filename.split('.').pop() || '').toLowerCase()];
-  if (!ext) return json({ error: 'Use a PNG, JPG, SVG, or WebP image.' }, 400);
+  if (!ext && filename) ext = ({ png: 'png', jpg: 'jpg', jpeg: 'jpg', webp: 'webp' })[(filename.split('.').pop() || '').toLowerCase()];
+  if (!ext) return json({ error: 'Use a PNG, JPG, or WebP image.' }, 400);
   const mime = EXT_BY_MIME[contentType] ? contentType : MIME[ext];
 
   let buf;
@@ -48,7 +51,7 @@ export default async (req) => {
     await db.storage.createBucket('branding', {
       public: true,
       fileSizeLimit: MAX_BYTES,
-      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'],
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
     });
   } catch (_) { /* already exists */ }
 
