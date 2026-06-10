@@ -995,16 +995,18 @@ function projectPoint(origin, bearingDeg, metres){
   return [toDeg(lng2), toDeg(lat2)];
 }
 
+// Returns the route's turn points, null if Mapbox found no route from this
+// bearing (normal near water/parkland), or THROWS on a service-level error
+// (auth, rate limit, bad token) so the caller can surface the real problem
+// instead of pretending the area has no roads.
 async function getRouteSteps(from, to){
-  try{
-    const d = await mapApi('directions', { from, to });
-    if(!d.routes || !d.routes.length) return null;
-    const steps = d.routes[0].legs[0].steps || [];
-    // Each step's maneuver location is a turn/intersection point.
-    return steps
-      .map(s => ({ loc: s.maneuver.location, name: s.name || 'Unnamed road' }))
-      .filter(s => s.loc);
-  }catch(e){ return null; }
+  const d = await mapApi('directions', { from, to });
+  if(!d.routes || !d.routes.length) return null;
+  const steps = d.routes[0].legs[0].steps || [];
+  // Each step's maneuver location is a turn/intersection point.
+  return steps
+    .map(s => ({ loc: s.maneuver.location, name: s.name || 'Unnamed road' }))
+    .filter(s => s.loc);
 }
 
 /*
@@ -1092,7 +1094,18 @@ async function findSpots(home, maxDriveMin, wantCount){
   const candidates = [];
 
   // Approach routes from each direction back to the house (parallel requests).
-  const stepLists = await Promise.all(bearings.map(b => getRouteSteps(projectPoint(home, b, outerKm), home)));
+  // A single direction may legitimately fail (no road that way); only if ALL
+  // of them error out do we surface the underlying service error — that means
+  // the map backend itself is refusing us (token/auth/rate limit), not that
+  // the neighborhood has no roads.
+  const settled = await Promise.all(bearings.map(b =>
+    getRouteSteps(projectPoint(home, b, outerKm), home)
+      .then(r => ({ ok:true, r }), e => ({ ok:false, e }))
+  ));
+  if(settled.every(x => !x.ok)){
+    throw new Error('Route lookup failed: ' + (settled[0].e && settled[0].e.message || 'unknown error'));
+  }
+  const stepLists = settled.filter(x => x.ok).map(x => x.r);
   stepLists.forEach(steps => {
     if(!steps) return;
     steps.forEach(s => {
@@ -1199,6 +1212,7 @@ async function annotateRoadClass(cands){
 async function annotateDriveTime(home, cands, maxDriveMin){
   const kept = [];
   const batchSize = 24;
+  let lastErr = null;
   for(let i=0; i<cands.length; i+=batchSize){
     const batch = cands.slice(i, i+batchSize);
     try{
@@ -1213,7 +1227,12 @@ async function annotateDriveTime(home, cands, maxDriveMin){
           kept.push(c);
         }
       });
-    }catch(e){ /* skip failed batch */ }
+    }catch(e){ lastErr = e; /* skip failed batch */ }
+  }
+  // Every batch failed with a service error → surface it instead of letting
+  // the search end in a misleading "no spots found".
+  if(!kept.length && lastErr){
+    throw new Error('Drive-time check failed: ' + (lastErr.message || 'unknown error'));
   }
   return kept;
 }
