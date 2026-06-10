@@ -1,7 +1,7 @@
 // Shared subscription → database logic.
 // Used by BOTH the Stripe webhook (push) and /api/reconcile (pull, on demand),
 // so however a payment reaches us, access is granted by the exact same rules.
-import { stripe } from './helpers.mjs';
+import { stripe, ilikeExact } from './helpers.mjs';
 
 const ACTIVE = ['active', 'trialing'];
 
@@ -39,7 +39,7 @@ export async function applySubscription(db, subInput) {
       const email = cust && !cust.deleted ? cust.email : null;
       if (email) {
         const { data: prof } = await db
-          .from('profiles').select('id').ilike('email', email).maybeSingle();
+          .from('profiles').select('id').ilike('email', ilikeExact(email)).maybeSingle();
         if (prof?.id) userId = prof.id;
       }
     } catch (e) { console.error('applySubscription: email fallback failed:', e.message); }

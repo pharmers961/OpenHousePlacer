@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>SignDeployer — Put your open house signs where buyers actually drive</title>
 <meta name="description" content="SignDeployer finds the highest-visibility spots for your open house directional signs using smart road and route analysis. Built for real estate agents and brokerages." />
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+<!-- Social sharing cards -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="SignDeployer — Put your open house signs where buyers actually drive" />
+<meta property="og:description" content="Enter a listing address and get the highest-visibility corners for your open house signs, ordered into one driving route. Try the live demo — no sign-up needed." />
+<meta property="og:url" content="https://signdeployer.com/" />
+<meta property="og:image" content="https://signdeployer.com/assets/img/app-screenshot.png" />
+<meta name="twitter:image" content="https://signdeployer.com/assets/img/app-screenshot.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="SignDeployer — smarter open house sign placement" />
+<meta name="twitter:description" content="Map the best corners for your open house signs in seconds. Free live demo." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -47,6 +58,16 @@
   .btn.primary:hover{ opacity:1; box-shadow:0 6px 18px rgba(16,42,67,0.28); }
   .btn.lg{ padding:15px 26px; font-size:13px; }
   .btn.block{ display:block; width:100%; text-align:center; }
+  .btn:focus-visible, .linkbtn:focus-visible{ outline:3px solid #2b6cb0; outline-offset:2px; }
+  /* Button that looks like a footer/nav text link (real <button> for a11y) */
+  .linkbtn{ background:none; border:none; cursor:pointer; font:inherit; color:inherit;
+    padding:0; text-decoration:underline; }
+  /* Demo CTA: the primary action on the page — give it extra presence */
+  .demo-cta{ display:inline-flex; align-items:center; gap:10px;
+    box-shadow:0 10px 28px rgba(16,42,67,0.30); }
+  .demo-badge{ background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.35);
+    font-size:10px; font-weight:700; letter-spacing:.8px; padding:3px 9px; border-radius:14px;
+    text-transform:none; }
 
   /* ---------- Hero ---------- */
   .hero{ min-height:calc(100vh - 66px); min-height:calc(100dvh - 66px);
@@ -147,6 +168,8 @@
   .billing-toggle button.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
   .billing-toggle .save{ font-size:11px; font-weight:700; color:#1b6b34; background:#e7f4ea; border:1px solid #bfe3c8;
     padding:4px 10px; border-radius:20px; letter-spacing:.3px; }
+  .toggle-note{ text-align:center; font-size:12.5px; color:var(--muted); margin:-22px 0 30px; }
+  .alt-price{ font-size:12px; color:var(--muted); margin:4px 0 0; }
   .plans{ display:grid; grid-template-columns:repeat(2,1fr); gap:22px; align-items:stretch;
     max-width:760px; margin:0 auto; }
   .plan{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:30px 26px;
@@ -212,8 +235,9 @@
     <nav class="nav-links">
       <a class="link hide-sm" href="#how">How it works</a>
       <a class="link" href="#pricing">Pricing</a>
+      <a class="link hide-sm" href="app.html?demo=1">Live demo</a>
       <a class="link hide-sm" href="#contact">Contact</a>
-      <a class="btn" id="navLogin">Sign in</a>
+      <button class="btn" id="navLogin" type="button">Sign in</button>
     </nav>
   </div>
 </header>
@@ -226,18 +250,19 @@
       <h1>Put your open house signs where buyers actually drive.</h1>
       <p class="sub">SignDeployer analyzes the real road network and the routes people take to reach your listing, then maps the highest-visibility corners for your directional signs — in seconds.</p>
       <div class="hero-cta">
-        <a class="btn primary lg" id="heroDemo">Try the app</a>
+        <a class="btn primary lg demo-cta" id="heroDemo" href="app.html?demo=1">▶&nbsp; Try the live demo <span class="demo-badge">Free · no sign-up</span></a>
         <a class="btn lg" href="#pricing">See pricing</a>
       </div>
-      <div class="trust">Try the live demo — no sign-up needed.</div>
+      <div class="trust">Explore a real sample listing — no account or credit card needed.</div>
     </div>
 
-    <!-- App preview: a sample sign plan. Shows a real screenshot if you add
-         assets/img/app-screenshot.png, otherwise a styled mockup of the app. -->
+    <!-- App preview: an annotated sample sign plan (assets/img/app-screenshot.svg).
+         Replace with a real PNG screenshot (assets/img/app-screenshot.png) any time —
+         just change the src. The CSS mockup below is the last-resort fallback. -->
     <div>
     <div class="shot">
       <div class="chrome"><i></i><i></i><i></i></div>
-      <img src="assets/img/app-screenshot.png" alt="SignDeployer app preview"
+      <img src="assets/img/app-screenshot.svg" alt="SignDeployer app showing a listing with five ranked sign spots and an optimized driving route"
            onerror="this.style.display='none'; document.getElementById('mock').style.display='flex';" />
       <div class="mock" id="mock" style="display:none">
         <div class="panel">
@@ -308,6 +333,11 @@
       <div class="feat reveal"><div class="num">2</div><h3>We analyze the routes</h3><p>It scores corners by road importance and the actual driving routes buyers take to reach the property — not random pins on a map.</p></div>
       <div class="feat reveal"><div class="num">3</div><h3>Get your sign plan</h3><p>See the best spots ranked and ordered into a driving route, ready to place your signs efficiently before the open house.</p></div>
     </div>
+
+    <div style="text-align:center;margin-top:40px;">
+      <a class="btn primary lg" href="app.html?demo=1">Try it yourself on a sample listing →</a>
+      <div class="trust" style="margin-top:10px;">Free · no sign-up · takes under a minute</div>
+    </div>
   </div>
 </section>
 
@@ -319,10 +349,12 @@
       <p>For individual agents and brokerages alike.</p>
     </div>
 
-    <div class="billing-toggle" role="group" aria-label="Billing period">
-      <button type="button" id="billMonthly">Monthly</button>
-      <button type="button" id="billYearly" class="active">Yearly</button>
+    <div class="billing-toggle" role="group" aria-label="Billing period for the Individual Agent plan">
+      <button type="button" id="billMonthly" aria-pressed="false">Monthly — $7/mo</button>
+      <button type="button" id="billYearly" class="active" aria-pressed="true">Yearly — $49/yr</button>
+      <span class="save">Save $35/yr</span>
     </div>
+    <p class="toggle-note">The toggle changes the <b>Individual Agent</b> plan only — Brokerage is billed yearly.</p>
 
     <div class="plans">
 
@@ -330,6 +362,7 @@
         <div class="tag">Individual Agent</div>
         <div class="price" id="agentPrice">$49<small>/year</small></div>
         <div class="save-note" id="agentSaveNote">✓ 2 months free vs paying monthly</div>
+        <div class="alt-price" id="agentAlt">Prefer monthly? $7/month — use the toggle above.</div>
         <div class="seats">For one solo agent</div>
         <ul>
           <li>Full sign-placement tool</li>
@@ -337,7 +370,7 @@
           <li>Route-optimized sign order</li>
           <li>Cancel anytime</li>
         </ul>
-        <a class="btn primary block" id="agentCta" data-plan="agent">Get started — $49/year</a>
+        <button class="btn primary block" id="agentCta" data-plan="agent" type="button">Get started — $49/year</button>
       </div>
 
       <div class="plan">
@@ -350,7 +383,7 @@
           <li>Your company branding</li>
           <li>Priority support</li>
         </ul>
-        <a class="btn primary block" data-plan="brokerage">Get started</a>
+        <button class="btn primary block" data-plan="brokerage" type="button">Get started</button>
       </div>
 
     </div>
@@ -374,16 +407,16 @@
 <footer>
   <div class="wrap foot-inner">
     <div>© <span id="year"></span> SignDeployer. All rights reserved.</div>
-    <div><a href="#pricing" class="link">Pricing</a> · <a href="#contact" class="link">Contact</a> · <a id="footLogin" class="link" style="cursor:pointer">Sign in</a></div>
+    <div><a href="#pricing" class="link">Pricing</a> · <a href="#contact" class="link">Contact</a> · <button id="footLogin" class="linkbtn" type="button">Sign in</button></div>
   </div>
 </footer>
 
 <!-- ===================== LOGIN MODAL ===================== -->
 <div class="modal-overlay" id="loginModal">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="head">SignDeployer</div>
     <div class="body">
-      <button class="close" id="modalClose" aria-label="Close">&times;</button>
+      <button class="close" id="modalClose" type="button" aria-label="Close">&times;</button>
       <h3 id="modalTitle">Sign in</h3>
       <p id="modalSub">Enter your email and we'll send you a secure sign-in link.</p>
       <form id="loginForm">
@@ -421,7 +454,7 @@
   els.forEach(function(e){ io.observe(e); });
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
 <script src="assets/js/config.js"></script>
 <script src="assets/js/landing.js"></script>
 </body>

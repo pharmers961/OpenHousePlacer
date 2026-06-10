@@ -3,7 +3,7 @@
 // that company (as a member) and consume the invite. This is how an EXISTING
 // account joins a brokerage after being invited — brand-new signups are handled
 // by the handle_new_user() trigger instead. Returns { attached: boolean }.
-import { adminDb, getUser, json } from './lib/helpers.mjs';
+import { adminDb, getUser, ilikeExact, json } from './lib/helpers.mjs';
 
 export default async (req) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
@@ -22,7 +22,7 @@ export default async (req) => {
 
   const { data: inv } = await db
     .from('company_invites').select('id, company_id')
-    .ilike('email', email).order('created_at', { ascending: true }).limit(1).maybeSingle();
+    .ilike('email', ilikeExact(email)).order('created_at', { ascending: true }).limit(1).maybeSingle();
   if (!inv) return json({ attached: false });
 
   await db.from('profiles')

@@ -20,3 +20,22 @@
 
 [functions]
   node_bundler = "esbuild"
+
+# ---------------------------------------------------------------------------
+# Security headers (all pages).
+#  - CSP: only our own files + the three CDNs we actually use may run script;
+#    'unsafe-inline' is required for the inline <script>/<style> blocks in the
+#    HTML pages (tightening to nonces is a future refactor).
+#  - frame-ancestors/X-Frame-Options: the site can never be iframed
+#    (clickjacking on the login modal / billing buttons).
+#  - img-src allows https: because brokerage owners may point their logo at
+#    any https URL.
+# ---------------------------------------------------------------------------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://api.mapbox.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.mapbox.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.mapbox.com https://events.mapbox.com https://*.supabase.co; worker-src blob:; child-src blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"

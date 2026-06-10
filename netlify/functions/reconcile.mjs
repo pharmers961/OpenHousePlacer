@@ -22,7 +22,9 @@ export default async (req) => {
   // it's the hottest path here. Throttle per user so spamming it can't burn
   // through our account-wide Stripe rate budget and starve real traffic. The
   // window is generous enough for the legitimate "I just paid, let me in" retry.
-  if (!(await rateLimit(db, user.id, 'reconcile', { max: 8, windowSec: 60 })))
+  // failOpen:false — this endpoint amplifies into multiple Stripe API calls, so
+  // a broken limiter must not let it run unthrottled.
+  if (!(await rateLimit(db, user.id, 'reconcile', { max: 8, windowSec: 60, failOpen: false })))
     return tooManyRequests('Still checking your subscription — please wait a moment and refresh.');
 
   try {

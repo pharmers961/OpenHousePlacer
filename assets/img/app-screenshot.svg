@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" font-family="Montserrat, 'Segoe UI', system-ui, sans-serif">
+  <!-- ======================================================================
+       Annotated preview of the SignDeployer app: sidebar + map + ranked sign
+       spots + optimized route, with three callout annotations.
+       Hand-built to mirror the real app.html UI (colors, layout, components).
+       Swap for a real PNG screenshot any time by changing the <img src> in
+       index.html.
+       ====================================================================== -->
+  <defs>
+    <linearGradient id="band" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b3b5f"/><stop offset="1" stop-color="#102a43"/>
+    </linearGradient>
+    <linearGradient id="btn" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b3b5f"/><stop offset="1" stop-color="#102a43"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000" flood-opacity="0.28"/>
+    </filter>
+    <filter id="card" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#102a43" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <!-- ================= App canvas ================= -->
+  <rect width="1200" height="760" fill="#ffffff"/>
+
+  <!-- ================= Map area ================= -->
+  <g>
+    <rect x="380" y="0" width="820" height="760" fill="#eef2ee"/>
+    <!-- minor street grid -->
+    <g stroke="#dde3dd" stroke-width="2">
+      <line x1="380" y1="95"  x2="1200" y2="80"/>
+      <line x1="380" y1="225" x2="1200" y2="215"/>
+      <line x1="380" y1="475" x2="1200" y2="490"/>
+      <line x1="380" y1="615" x2="1200" y2="630"/>
+      <line x1="500" y1="0" x2="490" y2="760"/>
+      <line x1="745" y1="0" x2="755" y2="760"/>
+      <line x1="1080" y1="0" x2="1070" y2="760"/>
+    </g>
+    <!-- water + park for realism -->
+    <path d="M1200 560 C 1100 575 1060 640 1090 760 L 1200 760 Z" fill="#cfe3ee"/>
+    <path d="M395 590 q 80 -45 165 -5 q 35 70 -25 120 q -110 25 -140 -115 z" fill="#d9e8d4"/>
+    <!-- major roads (white with grey casing, like a light basemap) -->
+    <g stroke="#c9cfc9" stroke-width="13" stroke-linecap="round" fill="none">
+      <path d="M380 360 L 1200 340"/>
+      <path d="M610 0 L 620 760"/>
+      <path d="M380 150 C 700 130 950 180 1200 460"/>
+    </g>
+    <g stroke="#ffffff" stroke-width="9" stroke-linecap="round" fill="none">
+      <path d="M380 360 L 1200 340"/>
+      <path d="M610 0 L 620 760"/>
+      <path d="M380 150 C 700 130 950 180 1200 460"/>
+    </g>
+    <!-- highway shield-ish label -->
+    <g>
+      <rect x="1010" y="240" width="64" height="22" rx="11" fill="#ffffff" stroke="#c9cfc9"/>
+      <text x="1042" y="255" font-size="12" font-weight="600" fill="#7a8a7a" text-anchor="middle">Hwy 12</text>
+    </g>
+
+    <!-- optimized driving route (dashed, loops out and back to the listing) -->
+    <path d="M 800 415 L 760 358 L 618 348 L 612 165 L 905 172
+             L 1105 345 L 1090 520 L 845 540 L 800 415"
+          fill="none" stroke="#2c7be5" stroke-width="4.5" stroke-dasharray="13 9"
+          stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+
+    <!-- the listing: dark rounded tile with a white house -->
+    <g filter="url(#soft)">
+      <rect x="773" y="388" width="54" height="54" rx="10" fill="#102a43" stroke="#ffffff" stroke-width="3"/>
+      <path d="M800 400 l-15 13 v17 h11 v-11 h8 v11 h11 v-17 z" fill="#ffffff"/>
+    </g>
+
+    <!-- numbered sign-spot pins, in driving order -->
+    <g filter="url(#soft)" font-size="17" font-weight="700" text-anchor="middle">
+      <g><circle cx="760" cy="358" r="19" fill="#102a43" stroke="#fff" stroke-width="3"/><text x="760" y="364" fill="#fff">1</text></g>
+      <g><circle cx="615" cy="255" r="19" fill="#102a43" stroke="#fff" stroke-width="3"/><text x="615" y="261" fill="#fff">2</text></g>
+      <g><circle cx="905" cy="172" r="19" fill="#102a43" stroke="#fff" stroke-width="3"/><text x="905" y="178" fill="#fff">3</text></g>
+      <g><circle cx="1105" cy="345" r="19" fill="#102a43" stroke="#fff" stroke-width="3"/><text x="1105" y="351" fill="#fff">4</text></g>
+      <g><circle cx="1090" cy="520" r="19" fill="#102a43" stroke="#fff" stroke-width="3"/><text x="1090" y="526" fill="#fff">5</text></g>
+      <!-- one manually-placed sign (red), like the real app -->
+      <g><circle cx="845" cy="540" r="19" fill="#b00020" stroke="#fff" stroke-width="3"/><text x="845" y="546" fill="#fff">6</text></g>
+    </g>
+
+    <!-- map legend (bottom-left of map), mirrors the real one -->
+    <g filter="url(#soft)">
+      <rect x="400" y="640" width="252" height="96" rx="4" fill="#ffffff" stroke="#dde6ef"/>
+      <rect x="416" y="654" width="17" height="17" rx="4" fill="#102a43"/>
+      <path d="M424.5 657.5 l-5 4.5 v5.5 h10 v-5.5 z" fill="#fff"/>
+      <text x="444" y="667" font-size="12.5" fill="#102a43" font-weight="500">The listing</text>
+      <circle cx="424.5" cy="690" r="7" fill="#102a43"/>
+      <text x="444" y="694" font-size="12.5" fill="#102a43" font-weight="500">Sign spot (driving order)</text>
+      <circle cx="424.5" cy="715" r="7" fill="#b00020"/>
+      <text x="444" y="719" font-size="12.5" fill="#102a43" font-weight="500">Manually placed sign</text>
+    </g>
+  </g>
+
+  <!-- ================= Sidebar ================= -->
+  <g>
+    <rect x="0" y="0" width="380" height="760" fill="#ffffff"/>
+    <line x1="380" y1="0" x2="380" y2="760" stroke="#dde6ef" stroke-width="2"/>
+
+    <!-- brand band -->
+    <rect x="0" y="0" width="380" height="92" fill="url(#band)"/>
+    <g>
+      <rect x="26" y="30" width="32" height="32" rx="7" fill="#ffffff" opacity="0.13"/>
+      <path d="M42 35 c-4.4 0-8 3.4-8 7.6 0 5.6 8 14.4 8 14.4 s8-8.8 8-14.4 C50 38.4 46.4 35 42 35z" fill="#fff"/>
+      <circle cx="42" cy="42.6" r="3" fill="#102a43"/>
+    </g>
+    <text x="72" y="50" font-size="22" font-weight="700" fill="#ffffff" letter-spacing="0.5">SignDeployer</text>
+    <text x="72" y="69" font-size="9.5" font-weight="500" fill="#ccd6e0" letter-spacing="2.6">OPEN HOUSE SIGN PLACEMENT</text>
+
+    <!-- address field -->
+    <text x="28" y="130" font-size="10.5" font-weight="600" fill="#102a43" letter-spacing="2">ADDRESS OF THE LISTING</text>
+    <rect x="28" y="142" width="324" height="44" rx="2" fill="#ffffff" stroke="#dde6ef" stroke-width="2"/>
+    <text x="42" y="169" font-size="13.5" fill="#102a43">2847 Maplewood Drive, Austin, TX</text>
+
+    <!-- sliders -->
+    <text x="28" y="222" font-size="10.5" font-weight="600" fill="#102a43" letter-spacing="2">NUMBER OF SIGNS — 6</text>
+    <rect x="28" y="236" width="324" height="6" rx="3" fill="#dde6ef"/>
+    <rect x="28" y="236" width="170" height="6" rx="3" fill="#102a43"/>
+    <circle cx="198" cy="239" r="9" fill="#102a43" stroke="#fff" stroke-width="2.5"/>
+
+    <text x="28" y="282" font-size="10.5" font-weight="600" fill="#102a43" letter-spacing="2">MAX DRIVE TIME FROM HOUSE — 5 MIN</text>
+    <rect x="28" y="296" width="324" height="6" rx="3" fill="#dde6ef"/>
+    <rect x="28" y="296" width="105" height="6" rx="3" fill="#102a43"/>
+    <circle cx="133" cy="299" r="9" fill="#102a43" stroke="#fff" stroke-width="2.5"/>
+
+    <!-- find button -->
+    <rect x="28" y="330" width="324" height="48" rx="2" fill="url(#btn)"/>
+    <text x="190" y="359" font-size="12.5" font-weight="600" fill="#ffffff" letter-spacing="2" text-anchor="middle">FIND 6 SIGN SPOTS</text>
+
+    <!-- status -->
+    <text x="28" y="406" font-size="11.5" fill="#486581">✓ Done — 6 spots found within 5 min.</text>
+
+    <!-- results -->
+    <text x="28" y="442" font-size="10.5" font-weight="600" fill="#102a43" letter-spacing="2">6 SIGN SPOTS — DRIVING ORDER</text>
+    <line x1="28" y1="452" x2="352" y2="452" stroke="#dde6ef" stroke-width="1.5"/>
+
+    <g font-size="13" fill="#102a43">
+      <circle cx="42" cy="478" r="13" fill="#102a43"/><text x="42" y="483" font-size="11.5" font-weight="600" fill="#fff" text-anchor="middle">1</text>
+      <text x="66" y="476" font-weight="600">Maplewood Dr &amp; Ranch Rd</text>
+      <text x="66" y="492" font-size="11" fill="#5a6b7b">primary road • 0.8 min from listing</text>
+
+      <circle cx="42" cy="524" r="13" fill="#102a43"/><text x="42" y="529" font-size="11.5" font-weight="600" fill="#fff" text-anchor="middle">2</text>
+      <text x="66" y="522" font-weight="600">Lamar Blvd &amp; 38th St</text>
+      <text x="66" y="538" font-size="11" fill="#5a6b7b">trunk road • 2.1 min from listing</text>
+
+      <circle cx="42" cy="570" r="13" fill="#102a43"/><text x="42" y="575" font-size="11.5" font-weight="600" fill="#fff" text-anchor="middle">3</text>
+      <text x="66" y="568" font-weight="600">Hwy 12 exit ramp</text>
+      <text x="66" y="584" font-size="11" fill="#5a6b7b">motorway link • 3.4 min from listing</text>
+
+      <circle cx="42" cy="616" r="13" fill="#102a43"/><text x="42" y="621" font-size="11.5" font-weight="600" fill="#fff" text-anchor="middle">4</text>
+      <text x="66" y="614" font-weight="600">Burnet Rd &amp; Koenig Ln</text>
+      <text x="66" y="630" font-size="11" fill="#5a6b7b">secondary road • 4.0 min from listing</text>
+    </g>
+
+    <!-- navigate button -->
+    <rect x="28" y="660" width="324" height="46" rx="2" fill="#102a43"/>
+    <text x="190" y="688" font-size="11" font-weight="600" fill="#ffffff" letter-spacing="1.6" text-anchor="middle">OPEN ROUTE IN GOOGLE MAPS</text>
+    <rect x="28" y="714" width="324" height="34" rx="2" fill="#ffffff" stroke="#102a43" stroke-width="1.5"/>
+    <text x="190" y="735" font-size="10.5" font-weight="600" fill="#102a43" letter-spacing="1.6" text-anchor="middle">PRINT ROUTE</text>
+  </g>
+
+  <!-- ================= Annotations ================= -->
+  <!-- 1: ranked spots -->
+  <g filter="url(#card)">
+    <path d="M653 92 L 627 240" stroke="#2c7be5" stroke-width="2.5" fill="none" stroke-dasharray="2 5"/>
+    <circle cx="627" cy="240" r="4.5" fill="#2c7be5"/>
+    <rect x="540" y="38" width="240" height="56" rx="9" fill="#102a43"/>
+    <text x="560" y="62" font-size="14" font-weight="700" fill="#ffffff">Ranked, road-aware spots</text>
+    <text x="560" y="80" font-size="11.5" fill="#ccd6e0">Scored by real approach routes</text>
+  </g>
+
+  <!-- 2: optimized route -->
+  <g filter="url(#card)">
+    <path d="M1010 622 L 1078 528" stroke="#2c7be5" stroke-width="2.5" fill="none" stroke-dasharray="2 5"/>
+    <circle cx="1078" cy="528" r="4.5" fill="#2c7be5"/>
+    <rect x="880" y="630" width="252" height="56" rx="9" fill="#102a43"/>
+    <text x="900" y="654" font-size="14" font-weight="700" fill="#ffffff">One optimized loop</text>
+    <text x="900" y="672" font-size="11.5" fill="#ccd6e0">Drop every sign, end back at the house</text>
+  </g>
+
+  <!-- 3: navigate (points toward the sidebar's route buttons) -->
+  <g filter="url(#card)">
+    <path d="M450 568 C 420 610 395 645 372 676" stroke="#2c7be5" stroke-width="2.5" fill="none" stroke-dasharray="2 5"/>
+    <circle cx="372" cy="676" r="4.5" fill="#2c7be5"/>
+    <rect x="404" y="512" width="236" height="56" rx="9" fill="#102a43"/>
+    <text x="424" y="536" font-size="14" font-weight="700" fill="#ffffff">Tap to navigate</text>
+    <text x="424" y="554" font-size="11.5" fill="#ccd6e0">Opens in Google Maps, or print it</text>
+  </g>
+</svg>
