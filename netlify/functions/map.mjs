@@ -74,13 +74,17 @@ export default async (req, context) => {
   const user = await getUser(req);
   let demo = false;
   if (user) {
-    if (!(await isActiveSubscriber(db, user.id))) {
-      return json({ error: 'An active subscription is required.' }, 403);
-    }
+    // Run the subscription check and the rate-limit check in parallel — they
+    // are independent DB round trips, and this endpoint is on the hot path of
+    // every search step.
     // ~600 calls ≈ 15–20 full searches per hour: ample for a working agent,
     // tight enough that a scripted scraper hits the wall fast.
-    if (!(await rateLimit(db, user.id, 'map', { max: 600, windowSec: 3600 })))
-      return tooManyRequests('Slow down a little — too many map requests in the last hour.');
+    const [active, allowed] = await Promise.all([
+      isActiveSubscriber(db, user.id),
+      rateLimit(db, user.id, 'map', { max: 600, windowSec: 3600 }),
+    ]);
+    if (!active) return json({ error: 'An active subscription is required.' }, 403);
+    if (!allowed) return tooManyRequests('Slow down a little — too many map requests in the last hour.');
   } else if (body.demo === true) {
     demo = true;
     if (kind === 'suggest' || kind === 'geocode') {
