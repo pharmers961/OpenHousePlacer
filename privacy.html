@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy Policy — SignDeployer</title>
+<meta name="robots" content="noindex" />
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- NOTE TO OWNER: this is a sensible starting point, not legal advice.
+     Have an attorney review it before relying on it. -->
+<style>
+  :root{ --ink:#102a43; --muted:#5a6b7b; --line:#dde6ef; --soft:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Montserrat",system-ui,sans-serif; color:var(--ink); background:#fff; line-height:1.65; }
+  .top{ background:#fff; border-bottom:1px solid var(--line); }
+  .top .wrap{ max-width:760px; margin:0 auto; padding:16px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .brand{ font-weight:800; letter-spacing:1.5px; text-transform:uppercase; font-size:16px; display:flex; align-items:center; gap:9px; color:inherit; text-decoration:none; }
+  .mark{ width:22px; height:22px; background:var(--ink); border-radius:5px; display:inline-flex; align-items:center; justify-content:center; }
+  .mark svg{ width:13px; height:13px; }
+  main{ max-width:760px; margin:0 auto; padding:40px 24px 80px; }
+  h1{ font-size:30px; letter-spacing:-.5px; margin:0 0 6px; }
+  .updated{ color:var(--muted); font-size:13px; margin-bottom:30px; }
+  h2{ font-size:18px; margin:34px 0 10px; }
+  p, li{ font-size:15px; color:#2a3f52; }
+  a{ color:var(--ink); font-weight:600; }
+  table{ width:100%; border-collapse:collapse; font-size:14px; margin:10px 0; }
+  th, td{ text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th{ font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+  footer{ border-top:1px solid var(--line); padding:26px 0; text-align:center; color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap">
+  <a class="brand" href="/"><span class="mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="#fff"/><circle cx="12" cy="9" r="2.4" fill="#102a43"/></svg></span> SignDeployer</a>
+  <a href="/terms.html" style="font-size:13px;font-weight:600;">Terms of Service →</a>
+</div></div>
+
+<main>
+  <h1>Privacy Policy</h1>
+  <div class="updated">Last updated: June 10, 2026</div>
+
+  <p>This policy explains what SignDeployer ("we") collects, why, and what we do with
+  it. The short version: we collect what's needed to run a paid sign-placement tool —
+  your email, your subscription status, and the listings you choose to save — and we
+  don't sell any of it.</p>
+
+  <h2>1. What we collect</h2>
+  <table>
+    <thead><tr><th>Data</th><th>When</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Email address</td><td>When you sign in (one-time email link)</td><td>Your account identity and sign-in</td></tr>
+      <tr><td>Name, company name, phone, team size</td><td>If you buy a Brokerage plan</td><td>Setting up your team account and contacting you about it</td></tr>
+      <tr><td>Subscription status</td><td>From our payment processor</td><td>Knowing whether to unlock the app</td></tr>
+      <tr><td>Saved listing addresses</td><td>When you click "Save this open house"</td><td>Syncing your saved listings across your devices</td></tr>
+      <tr><td>Searched addresses</td><td>When you run a search</td><td>Sent to Mapbox to compute the sign plan; recent results are also cached in your own browser</td></tr>
+      <tr><td>IP address (hashed)</td><td>When you use the free demo</td><td>Rate-limiting to prevent abuse; we store a one-way hash, not the IP itself</td></tr>
+      <tr><td>Company logo/branding</td><td>If a brokerage owner uploads one</td><td>Displaying your branding to your team</td></tr>
+    </tbody>
+  </table>
+  <p><b>Payment details:</b> handled entirely by Stripe. Your card number never touches
+  our servers.</p>
+
+  <h2>2. What we don't do</h2>
+  <ul>
+    <li>We don't sell or rent your personal information.</li>
+    <li>We don't use advertising trackers or third-party ad networks.</li>
+    <li>We don't read your saved listings for any purpose other than showing them to you.</li>
+  </ul>
+
+  <h2>3. Where your data lives</h2>
+  <p>Account data and saved listings are stored with Supabase (our database provider).
+  The site is hosted on Netlify. Payments are processed by Stripe. Address searches are
+  processed by Mapbox to compute results. Sign-in emails are delivered via our email
+  provider. Each of these processors has its own security and privacy program.</p>
+
+  <h2>4. Cookies and local storage</h2>
+  <p>We don't use advertising cookies. Your browser's local storage holds your sign-in
+  session (via Supabase), your recent searches and settings, and a cache of results so
+  repeat searches are instant. Clearing your browser storage removes these; saved
+  listings remain in your account.</p>
+
+  <h2>5. How long we keep data</h2>
+  <p>Account data is kept while your account exists. Saved listings are kept until you
+  delete them. Demo rate-limit hashes are short-lived operational records. Billing
+  records are retained as required for tax and accounting purposes.</p>
+
+  <h2>6. Your choices</h2>
+  <ul>
+    <li><b>Access or delete your data:</b> email <a href="mailto:hello@signdeployer.com">hello@signdeployer.com</a>
+    and we'll handle it. Deleting your account removes your profile and saved listings.</li>
+    <li><b>Cancel billing:</b> Account → Manage billing, any time.</li>
+    <li><b>Team members:</b> if a brokerage added you, the brokerage owner can remove
+    you, or you can ask us to detach your account.</li>
+  </ul>
+
+  <h2>7. Security</h2>
+  <p>Sign-in uses one-time email links (no passwords to leak). Access to paid features
+  is verified server-side on every request. Database access is restricted with
+  row-level security so each user can only read their own records. Secrets and API keys
+  are stored in server environment variables, not in the site's code.</p>
+
+  <h2>8. Children</h2>
+  <p>The Service is for working real-estate professionals and is not directed at
+  children under 16.</p>
+
+  <h2>9. Changes</h2>
+  <p>If we materially change this policy, we'll update this page and the date above.</p>
+
+  <h2>10. Contact</h2>
+  <p>Privacy questions or requests: <a href="mailto:hello@signdeployer.com">hello@signdeployer.com</a></p>
+</main>
+
+<footer>© SignDeployer · <a href="/">Home</a> · <a href="/terms.html">Terms of Service</a></footer>
+</body>
+</html>

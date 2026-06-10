@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Page not found — SignDeployer</title>
+<meta name="robots" content="noindex" />
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#102a43; --muted:#5a6b7b; --line:#dde6ef; --soft:#f4f7fb; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:"Montserrat",system-ui,sans-serif; color:var(--ink); background:var(--soft);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:14px; padding:48px 40px;
+    max-width:460px; width:100%; text-align:center; box-shadow:0 20px 50px rgba(16,42,67,.10); }
+  .pin{ width:64px; height:64px; margin:0 auto 18px; background:var(--ink); border-radius:14px;
+    display:flex; align-items:center; justify-content:center; }
+  .pin svg{ width:36px; height:36px; }
+  h1{ font-size:24px; letter-spacing:-.5px; margin:0 0 8px; }
+  p{ color:var(--muted); font-size:14.5px; line-height:1.6; margin:0 0 26px; }
+  .btn{ display:inline-block; cursor:pointer; border:1px solid var(--ink); background:#fff; color:var(--ink);
+    font:inherit; font-weight:600; font-size:12px; letter-spacing:1px; text-transform:uppercase;
+    padding:13px 22px; border-radius:4px; text-decoration:none; margin:0 5px 10px; }
+  .btn.primary{ background:linear-gradient(180deg,#1b3b5f 0%,#102a43 100%); color:#fff; }
+  .btn:hover{ opacity:.85; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="pin"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z" fill="#fff"/><circle cx="12" cy="9" r="2.4" fill="#102a43"/></svg></div>
+    <h1>This corner doesn't exist</h1>
+    <p>Even our route optimizer couldn't find this page. The address may have moved, or the link was mistyped.</p>
+    <a class="btn primary" href="/">Back to home</a>
+    <a class="btn" href="/app.html?demo=1">Try the demo</a>
+  </div>
+</body>
+</html>

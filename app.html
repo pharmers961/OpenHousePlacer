@@ -678,8 +678,12 @@ function saveSession(){
 // and drive time are adjustable. Driven purely by the URL param (it persists
 // across refresh), so there's no hidden admin/bypass mechanism in the client.
 const DEMO = new URLSearchParams(location.search).get('demo') === '1';
-const DEMO_ADDR  = '1600 Pennsylvania Avenue NW, Washington, DC 20500';
-const DEMO_COORD = [-77.0365, 38.8977]; // [lng, lat]
+// The Painted Ladies at Alamo Square: a recognizable, genuinely residential
+// listing with real arterials (Fell/Oak/Divisadero) around it, so the demo's
+// sign plan looks like what an agent would actually get.
+// Keep in sync with DEMO_CENTER in netlify/functions/map.mjs.
+const DEMO_ADDR  = '710 Steiner Street, San Francisco, CA 94117';
+const DEMO_COORD = [-122.4327, 37.7762]; // [lng, lat]
 if(DEMO){
   const a = $('addr');
   if(a){

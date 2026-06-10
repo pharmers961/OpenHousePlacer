@@ -32,7 +32,7 @@ import { adminDb, getUser, isActiveSubscriber, json, rateLimit, tooManyRequests 
 const MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
 
 // Keep in sync with DEMO_ADDR/DEMO_COORD in app.html.
-const DEMO_CENTER = [-77.0365, 38.8977];
+const DEMO_CENTER = [-122.4327, 37.7762]; // 710 Steiner St, San Francisco
 const DEMO_RADIUS_M = 30000; // generous: covers projected approach points at max drive time
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -55,6 +55,20 @@ function ipBucketId(ip) {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`;
 }
 
+// Demo requests are fully deterministic (fixed listing → fixed bearings →
+// fixed candidate points), so identical requests recur across every visitor.
+// We cache each Mapbox response in the demo_cache table: after the first
+// visitor warms a given (signs, drive-time) combination, demo searches cost
+// ZERO Mapbox calls and return instantly.
+function demoCacheKey(kind, body) {
+  const parts = { kind };
+  if (body.q != null) parts.q = body.q;
+  if (body.lng != null) { parts.lng = body.lng; parts.lat = body.lat; }
+  if (body.from) { parts.from = body.from; parts.to = body.to; }
+  if (body.coords) parts.coords = body.coords;
+  return crypto.createHash('sha256').update(JSON.stringify(parts)).digest('hex');
+}
+
 export default async (req, context) => {
   // GET → public client config: the URL-restricted tile token the browser
   // map renders with. Kept in an env var (NOT in the repo) so rotating it is
@@ -69,6 +83,7 @@ export default async (req, context) => {
   const body = await req.json().catch(() => ({}));
   const kind = String(body.kind || '');
   const db = adminDb();
+  let cacheKey = null; // set for demo requests (see demoCacheKey)
 
   // --- Who is calling? ---
   const user = await getUser(req);
@@ -90,6 +105,13 @@ export default async (req, context) => {
     if (kind === 'suggest' || kind === 'geocode') {
       return json({ error: 'Address search is not available in the demo.' }, 403);
     }
+    // Cache first: a hit costs no Mapbox call and doesn't consume the
+    // caller's rate budget. (Failures fall through to the live path.)
+    cacheKey = demoCacheKey(kind, body);
+    try {
+      const { data: hit } = await db.from('demo_cache').select('response').eq('key', cacheKey).maybeSingle();
+      if (hit?.response) return json(hit.response);
+    } catch (_) { /* cache is best-effort */ }
     const ip = req.headers.get('x-nf-client-connection-ip') || context?.ip || '0.0.0.0';
     // failOpen:false — anonymous traffic must never bypass the cap.
     if (!(await rateLimit(db, ipBucketId(ip), 'map-demo', { max: 300, windowSec: 3600, failOpen: false })))
@@ -161,6 +183,10 @@ export default async (req, context) => {
     if (!r.ok) {
       const msg = (data && (data.message || data.code)) || `Map provider error (${r.status}).`;
       return json({ error: msg }, r.status === 429 ? 429 : 502);
+    }
+    if (demo && cacheKey && data) {
+      try { await db.from('demo_cache').upsert({ key: cacheKey, response: data }); }
+      catch (_) { /* cache is best-effort */ }
     }
     return json(data);
   } catch (e) {
