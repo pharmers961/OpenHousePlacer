@@ -300,6 +300,7 @@
   /* Empty state: shown over the map until the first search renders */
   .map-empty{ position:absolute; inset:0; z-index:4; display:flex; align-items:center;
     justify-content:center; pointer-events:none; }
+  .map-empty[hidden]{ display:none; } /* author display:flex would otherwise defeat the hidden attribute */
   .map-empty .card{ background:rgba(255,255,255,.95); border:1px solid var(--line); border-radius:10px;
     padding:18px 22px; max-width:320px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.12);
     font-size:13.5px; line-height:1.55; color:var(--accent-soft); }
@@ -495,7 +496,7 @@
 <div id="map">
   <div class="map-empty" id="mapEmpty">
     <div class="card"><b>Your sign plan appears here</b>
-    Enter the listing address on the left, then “Find sign spots” — we’ll map the best corners and the driving route.</div>
+    Enter the listing address, then “Find sign spots” — we’ll map the best corners and the driving route.</div>
   </div>
   <div class="legend" id="legend">
     <button type="button" class="legend-toggle" id="legendToggle" aria-expanded="true" aria-controls="legendBody">
