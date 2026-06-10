@@ -311,3 +311,19 @@ drop policy if exists "own saved addresses - delete" on public.saved_addresses;
 create policy "own saved addresses - delete"
   on public.saved_addresses for delete
   using (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- demo_cache: cached Mapbox responses for the public demo.
+-- The demo listing is fixed, so its requests are deterministic — after the
+-- first visitor warms a (signs, drive-time) combination, demo searches cost
+-- zero Mapbox API calls. Written only by the /api/map function (service role);
+-- RLS on with no policies so clients can't read or poison it.
+-- ---------------------------------------------------------------------------
+create table if not exists public.demo_cache (
+  key        text primary key,              -- sha256 of the request kind + params
+  response   jsonb not null,                -- the raw Mapbox response served back
+  created_at timestamptz not null default now()
+);
+
+alter table public.demo_cache enable row level security;
+-- No policies on purpose: only the service role (which bypasses RLS) touches it.
