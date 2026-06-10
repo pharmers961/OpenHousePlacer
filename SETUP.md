@@ -86,18 +86,22 @@ Stripe → (webhook) → our backend → updates the database → unlocks the ag
    | `ENTERPRISE_PRICE_ID` | `price_...` (Brokerage $499/yr) |
    | `SUPABASE_URL` | your Project URL |
    | `SUPABASE_SERVICE_ROLE_KEY` | the **secret** key (`sb_secret_...`) |
-   | `MAPBOX_TOKEN` | a Mapbox token for the server (see below) |
+   | `MAPBOX_TOKEN` | server-side Mapbox token — **no URL restriction** (see below) |
+   | `MAPBOX_PUBLIC_TOKEN` | browser tile token (`pk.`) — **URL-restricted to your domain** |
    | `APP_URL` | your Netlify URL |
    | `STRIPE_WEBHOOK_SECRET` | *fill in Step 4* |
 
-   **About the two Mapbox tokens:** all the expensive Mapbox APIs (geocoding,
-   directions, drive-time matrix, road lookups, route optimization) are called
-   ONLY by the `/api/map` backend using `MAPBOX_TOKEN`, which never reaches the
-   browser — that's what makes the paywall enforceable. Create a dedicated
-   token for it at <https://account.mapbox.com/access-tokens/>. The separate
-   PUBLIC `pk.` token baked into `app.html` is used only to draw the base map;
-   **URL-restrict it to your domain** in the Mapbox dashboard (Account →
-   Tokens → URL restrictions) so nobody can reuse it elsewhere.
+   **About the two Mapbox tokens** (create both at
+   <https://account.mapbox.com/access-tokens/>):
+   - `MAPBOX_TOKEN` — used ONLY by the `/api/map` backend for the expensive
+     APIs (geocoding, directions, drive-time matrix, road lookups, route
+     optimization). It never reaches the browser — that's what makes the
+     paywall enforceable. Do **not** URL-restrict it: server-to-server calls
+     send no Referer header, so Mapbox would reject a restricted token.
+   - `MAPBOX_PUBLIC_TOKEN` — a publishable `pk.` token the browser uses just
+     to draw the base map (served via `GET /api/map`). **URL-restrict it** to
+     your domain (Account → Tokens → URL restrictions) so it can't be reused
+     elsewhere. No tokens live in the repository.
 
    Then trigger a redeploy (**Deploys → Trigger deploy → Deploy site**) so the
    variables take effect.

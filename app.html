@@ -532,22 +532,23 @@
    ============================================================ */
 
 /* ------------------------------------------------------------------
-   Mapbox PUBLIC token — used ONLY to render the base map (mapbox-gl
-   requires a token in the browser). IMPORTANT: URL-restrict this token to
-   your production domain(s) in the Mapbox dashboard (Account → Tokens →
-   URL restrictions) so it can't be lifted and reused elsewhere.
+   Mapbox PUBLIC tile token — fetched from the server (GET /api/map) at
+   load, where it lives in the MAPBOX_PUBLIC_TOKEN env var. Keeping it out
+   of the source means rotating it is just an env-var change (no commit),
+   and GitHub's secret scanning has nothing to block. URL-restrict that
+   token to your domain in the Mapbox dashboard; it only renders tiles.
 
    All the EXPENSIVE Mapbox APIs (geocoding, directions, matrix, tilequery,
-   route optimization) are NOT called from the browser anymore — they go
-   through our authenticated /api/map proxy, which requires an active
-   subscription (or the area-locked, rate-limited demo) and keeps its own
-   secret token server-side. That is what makes the paywall real.
+   route optimization) go through our authenticated POST /api/map proxy,
+   which requires an active subscription (or the area-locked, rate-limited
+   demo) and uses its own secret server token. That is what makes the
+   paywall real.
    ------------------------------------------------------------------ */
-const MAPBOX_GL_TOKEN = 'pk.eyJ1IjoicGhhcm1lcnM5MjUiLCJhIjoiY21wcnJpcmcxMTF2eDJycHI1aDVkZ3R6bSJ9.LMViGVOyUKq2AUvbKDPlog';
+let MAPBOX_GL_TOKEN = ''; // filled by initMapToken() below
+let TOKEN_OK = false;
 
 const $ = id => document.getElementById(id);
 const statusEl = $('status');
-const TOKEN_OK = /^pk\./.test(MAPBOX_GL_TOKEN);
 
 /* Every Mapbox API request goes through our server. app-guard.js publishes
    window.__sdGetToken once the user is verified; demo requests carry demo:true
@@ -650,13 +651,27 @@ function saveSession(){
   }catch(e){ /* storage may be unavailable */ }
 }
 
-// Bring the map up immediately on load so the agent never sees a blank screen.
-if(TOKEN_OK){
+// Fetch the public tile token, then bring the map up immediately so the
+// agent never sees a blank screen. In demo mode, also center on the sample
+// listing and drop its marker.
+(async function initMapToken(){
+  try{
+    const r = await fetch('/api/map');
+    const d = await r.json().catch(() => null);
+    if(d && /^pk\./.test(d.glToken || '')) MAPBOX_GL_TOKEN = d.glToken;
+  }catch(e){ /* handled below */ }
+  TOKEN_OK = /^pk\./.test(MAPBOX_GL_TOKEN);
+  if(!TOKEN_OK){
+    $('addrHint').textContent = 'Setup needed: a Mapbox token has not been configured for this site yet.';
+    setStatus('This tool isn’t configured yet — the Mapbox tile token is missing (set MAPBOX_PUBLIC_TOKEN). Contact your admin.', true);
+    return;
+  }
   ensureMap(MAPBOX_GL_TOKEN);
-} else {
-  $('addrHint').textContent = 'Setup needed: a Mapbox token has not been configured for this site yet.';
-  setStatus('This tool isn’t configured yet — the Mapbox token is missing. Contact your admin.', true);
-}
+  if(DEMO && map){
+    const showHome = () => { try { map.setCenter(DEMO_COORD); map.setZoom(14); clearMap(); addMarker(DEMO_COORD[0], DEMO_COORD[1], '⌂', true); } catch(e){} };
+    if(map.isStyleLoaded()) showHome(); else map.once('load', showHome);
+  }
+})();
 
 // ---- DEMO MODE (public "Try the app", ?demo=1) -----------------------------
 // Locks the listing to a sample address (the White House); only the sign count
@@ -675,11 +690,8 @@ if(DEMO){
   selectedCoord = DEMO_COORD.slice();
   const hint = $('addrHint');
   if(hint) hint.textContent = 'Demo listing is fixed — adjust the number of signs and the drive time, then “Find sign spots”.';
-  // Center the map on the sample listing and drop its marker.
-  if(TOKEN_OK && map){
-    const showHome = () => { try { map.setCenter(DEMO_COORD); map.setZoom(14); clearMap(); addMarker(DEMO_COORD[0], DEMO_COORD[1], '⌂', true); } catch(e){} };
-    if(map.isStyleLoaded()) showHome(); else map.once('load', showHome);
-  }
+  // (The map is centered on the sample listing by initMapToken() above,
+  // once the tile token has been fetched.)
 }
 
 // ---- Saved addresses (full app only; hidden in the public demo) -------------

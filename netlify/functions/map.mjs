@@ -56,6 +56,13 @@ function ipBucketId(ip) {
 }
 
 export default async (req, context) => {
+  // GET → public client config: the URL-restricted tile token the browser
+  // map renders with. Kept in an env var (NOT in the repo) so rotating it is
+  // an env change, not a commit. This token is publishable by design; the
+  // secret MAPBOX_TOKEN below is never returned here.
+  if (req.method === 'GET') {
+    return json({ glToken: process.env.MAPBOX_PUBLIC_TOKEN || '' });
+  }
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
   if (!MAPBOX_TOKEN) return json({ error: 'Map service is not configured yet (missing MAPBOX_TOKEN).' }, 500);
 
